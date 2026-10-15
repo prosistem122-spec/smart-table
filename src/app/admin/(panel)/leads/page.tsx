@@ -9,6 +9,7 @@ import {
   type NavigationStatus,
 } from "@/types";
 import { formatPhoneDisplay } from "@/lib/phone";
+import { formatStepLabel } from "@/lib/admin/event-labels";
 
 interface LeadItem {
   id: string;
@@ -77,75 +78,106 @@ export default function AdminLeadsPage() {
 
   return (
     <>
-      <h1 className="admin-title">Potenciais clientes</h1>
-      <p className="admin-sub">
-        Pesquisa, filtros e acompanhamento comercial (distinto do estado de
-        navegação).
-      </p>
+      <header className="page-header">
+        <div className="page-header-text">
+          <h1 className="admin-title">Potenciais Clientes</h1>
+          <p className="admin-sub">
+            Pesquisa, filtros e acompanhamento comercial — distinto do estado de
+            navegação no funil.
+          </p>
+        </div>
+        <div className="page-meta">{total} registos</div>
+      </header>
 
       <div className="filters">
-        <input
-          placeholder="Pesquisar nome ou telefone"
-          value={q}
-          onChange={(e) => {
-            setPage(1);
-            setQ(e.target.value);
-          }}
-        />
-        <select
-          value={commercial}
-          onChange={(e) => {
-            setPage(1);
-            setCommercial(e.target.value);
-          }}
-        >
-          <option value="">Estado comercial</option>
-          {Object.entries(COMMERCIAL_STATUS_LABELS).map(([k, v]) => (
-            <option key={k} value={k}>
-              {v}
-            </option>
-          ))}
-        </select>
-        <select
-          value={nav}
-          onChange={(e) => {
-            setPage(1);
-            setNav(e.target.value);
-          }}
-        >
-          <option value="">Estado navegação</option>
-          {Object.entries(NAVIGATION_STATUS_LABELS).map(([k, v]) => (
-            <option key={k} value={k}>
-              {v}
-            </option>
-          ))}
-        </select>
-        <input
-          placeholder="Origem"
-          value={source}
-          onChange={(e) => {
-            setPage(1);
-            setSource(e.target.value);
-          }}
-        />
-        <select value={sort} onChange={(e) => setSort(e.target.value)}>
-          <option value="last_activity_at">Última atividade</option>
-          <option value="created_at">Data de entrada</option>
-          <option value="restaurant_name">Nome</option>
-          <option value="sessions_count">Sessões</option>
-        </select>
-        <button type="button" className="admin-btn" onClick={() => void load()}>
-          Atualizar
-        </button>
+        <div className="filter-field">
+          <label htmlFor="l-q">Pesquisa</label>
+          <input
+            id="l-q"
+            placeholder="Nome ou telefone"
+            value={q}
+            onChange={(e) => {
+              setPage(1);
+              setQ(e.target.value);
+            }}
+          />
+        </div>
+        <div className="filter-field">
+          <label htmlFor="l-commercial">Estado comercial</label>
+          <select
+            id="l-commercial"
+            value={commercial}
+            onChange={(e) => {
+              setPage(1);
+              setCommercial(e.target.value);
+            }}
+          >
+            <option value="">Todos</option>
+            {Object.entries(COMMERCIAL_STATUS_LABELS).map(([k, v]) => (
+              <option key={k} value={k}>
+                {v}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="filter-field">
+          <label htmlFor="l-nav">Navegação</label>
+          <select
+            id="l-nav"
+            value={nav}
+            onChange={(e) => {
+              setPage(1);
+              setNav(e.target.value);
+            }}
+          >
+            <option value="">Todos</option>
+            {Object.entries(NAVIGATION_STATUS_LABELS).map(([k, v]) => (
+              <option key={k} value={k}>
+                {v}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="filter-field">
+          <label htmlFor="l-source">Origem</label>
+          <input
+            id="l-source"
+            placeholder="Origem"
+            value={source}
+            onChange={(e) => {
+              setPage(1);
+              setSource(e.target.value);
+            }}
+          />
+        </div>
+        <div className="filter-field">
+          <label htmlFor="l-sort">Ordenar</label>
+          <select
+            id="l-sort"
+            value={sort}
+            onChange={(e) => setSort(e.target.value)}
+          >
+            <option value="last_activity_at">Última actividade</option>
+            <option value="created_at">Data de entrada</option>
+            <option value="restaurant_name">Nome</option>
+            <option value="sessions_count">Sessões</option>
+          </select>
+        </div>
+        <div className="filter-field filter-actions">
+          <label aria-hidden>&nbsp;</label>
+          <button type="button" className="admin-btn" onClick={() => void load()}>
+            Actualizar
+          </button>
+        </div>
       </div>
 
-      {error && <div className="panel" style={{ color: "#C2492E" }}>{error}</div>}
+      {error && <div className="alert error">{error}</div>}
 
-      <div className="panel table-wrap">
+      <div className="panel table-wrap" style={{ padding: 0, overflow: "hidden" }}>
         {loading ? (
           <div className="empty">A carregar…</div>
         ) : items.length === 0 ? (
-          <div className="empty">Nenhum potencial cliente encontrado (0).</div>
+          <div className="empty">Nenhum potencial cliente encontrado.</div>
         ) : (
           <table className="admin-table">
             <thead>
@@ -153,9 +185,9 @@ export default function AdminLeadsPage() {
                 <th>Restaurante</th>
                 <th>Telefone</th>
                 <th>Entrada</th>
-                <th>Última atividade</th>
+                <th>Última actividade</th>
                 <th>Última etapa</th>
-                <th>Sessões</th>
+                <th className="num">Sessões</th>
                 <th>Navegação</th>
                 <th>Origem</th>
                 <th>Comercial</th>
@@ -163,15 +195,31 @@ export default function AdminLeadsPage() {
             </thead>
             <tbody>
               {items.map((l) => (
-                <tr key={l.id} onClick={() => router.push(`/admin/leads/${l.id}`)}>
-                  <td>{l.restaurant_name}</td>
+                <tr
+                  key={l.id}
+                  className="clickable"
+                  role="link"
+                  tabIndex={0}
+                  onClick={() => router.push(`/admin/leads/${l.id}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") router.push(`/admin/leads/${l.id}`);
+                  }}
+                >
+                  <td className="strong">{l.restaurant_name}</td>
                   <td>{formatPhoneDisplay(l.phone_normalized)}</td>
                   <td>{new Date(l.created_at).toLocaleDateString("pt-MZ")}</td>
                   <td>
-                    {new Date(l.last_activity_at).toLocaleString("pt-MZ")}
+                    {new Date(l.last_activity_at).toLocaleString("pt-MZ", {
+                      day: "2-digit",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
                   </td>
-                  <td>{l.last_step || "—"}</td>
-                  <td>{l.sessions_count}</td>
+                  <td>
+                    {l.last_step ? formatStepLabel(l.last_step) : "—"}
+                  </td>
+                  <td className="num">{l.sessions_count}</td>
                   <td>
                     <span className="badge">
                       {NAVIGATION_STATUS_LABELS[l.navigation_status] ||
@@ -191,7 +239,7 @@ export default function AdminLeadsPage() {
         )}
       </div>
 
-      <div className="filters">
+      <div className="pagination-bar">
         <button
           type="button"
           className="admin-btn ghost"
