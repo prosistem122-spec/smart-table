@@ -4,11 +4,14 @@ import { NextResponse, type NextRequest } from "next/server";
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Proteger área admin (exceto login)
+  // Proteger área admin (exceto login / registo)
   if (!pathname.startsWith("/admin")) {
     return NextResponse.next();
   }
-  if (pathname.startsWith("/admin/login")) {
+  if (
+    pathname.startsWith("/admin/login") ||
+    pathname.startsWith("/admin/register")
+  ) {
     return NextResponse.next();
   }
 

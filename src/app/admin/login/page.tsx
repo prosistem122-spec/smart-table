@@ -1,9 +1,9 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, Suspense } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
-import { Suspense } from "react";
 
 function LoginForm() {
   const router = useRouter();
@@ -90,6 +90,12 @@ function LoginForm() {
         >
           Terminar sessão
         </button>
+        <p style={{ marginTop: 14, fontSize: "0.85rem", textAlign: "center" }}>
+          Sem conta?{" "}
+          <Link href="/admin/register" style={{ color: "#2446EE", fontWeight: 600 }}>
+            Criar conta admin
+          </Link>
+        </p>
       </form>
     </div>
   );

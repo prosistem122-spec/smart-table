@@ -3,6 +3,7 @@ import {
   sessionStartSchema,
   eventsBatchSchema,
   sanitizeMetadata,
+  adminRegisterSchema,
 } from "@/lib/validation";
 
 describe("sessionStartSchema", () => {
@@ -62,5 +63,25 @@ describe("sanitizeMetadata", () => {
       card_number: "4111",
     });
     expect(out).toEqual({ ok: "yes" });
+  });
+});
+
+describe("adminRegisterSchema", () => {
+  it("aceita registo válido", () => {
+    const r = adminRegisterSchema.safeParse({
+      email: "admin@exemplo.com",
+      password: "segura123",
+      display_name: "Admin",
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it("rejeita password curta", () => {
+    const r = adminRegisterSchema.safeParse({
+      email: "admin@exemplo.com",
+      password: "curta",
+      display_name: "Admin",
+    });
+    expect(r.success).toBe(false);
   });
 });

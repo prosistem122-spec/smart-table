@@ -51,20 +51,11 @@ cp .env.example .env.local
 
 Cria: `leads`, `sessions`, `events`, `funnel_answers`, `lead_notes`, `admin_profiles`, índices, RLS e `is_admin()`.
 
-4. Criar o primeiro administrador:
+4. Criar o primeiro administrador pela UI:
 
-- Authentication → Users → Add user (email + password)
-- No SQL Editor:
-
-```sql
-insert into public.admin_profiles (user_id, email, display_name, is_active)
-values (
-  '<USER_UUID_DO_AUTH>',
-  'admin@exemplo.com',
-  'Admin',
-  true
-);
-```
+- Abrir http://localhost:3000/admin/register
+- Preencher nome, email e palavra-passe → cria utilizador no Auth **e** linha em `admin_profiles`
+- Para admins seguintes: define `ADMIN_INVITE_CODE` no `.env.local` e usa esse código no formulário
 
 5. Instalar e correr:
 
@@ -74,7 +65,8 @@ npm run dev
 ```
 
 - Público: http://localhost:3000  
-- Admin: http://localhost:3000/admin/login  
+- Admin login: http://localhost:3000/admin/login  
+- Admin registo: http://localhost:3000/admin/register (primeiro admin = bootstrap; depois precisa de `ADMIN_INVITE_CODE`)  
 - Privacidade: http://localhost:3000/privacidade  
 
 ## Comandos
