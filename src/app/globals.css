@@ -1,0 +1,40 @@
+/* Base — o funil usa styles/funnel.css; admin usa styles/admin.css */
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+a {
+  color: inherit;
+}
+
+.consent-box {
+  margin: 4px 0 16px;
+  padding: 12px 14px;
+  background: #fafafd;
+  border: 1.4px solid var(--line, #e4e4ea);
+  border-radius: 13px;
+}
+
+.consent-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 0.82rem;
+  color: var(--muted, #6b6f80);
+  line-height: 1.45;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+
+.consent-row input {
+  margin-top: 3px;
+  flex: none;
+  accent-color: var(--blue, #2446ee);
+}
+
+.btn-primary:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
