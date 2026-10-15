@@ -88,11 +88,11 @@ export default function AdminRegisterPage() {
     }
   }
 
-  const blocked =
-    status &&
-    status.configured &&
-    status.needs_invite &&
-    status.invite_configured === false;
+  const blocked = Boolean(
+    status?.configured &&
+      status.needs_invite &&
+      status.invite_configured === false
+  );
 
   return (
     <div className="login-wrap">
