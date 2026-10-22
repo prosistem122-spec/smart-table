@@ -52,6 +52,33 @@ describe("eventsBatchSchema", () => {
     });
     expect(r.success).toBe(false);
   });
+
+  it("aceita eventos da página de vendas", () => {
+    const r = eventsBatchSchema.safeParse({
+      lead_id: "11111111-1111-4111-8111-111111111111",
+      session_id: "22222222-2222-4222-8222-222222222222",
+      events: [
+        { event_name: "landing_view", page: "sales" },
+        { event_name: "scroll_depth", value: "50" },
+        { event_name: "demo_step_view", step_index: 0 },
+        { event_name: "section_view", element_name: "problema" },
+      ],
+    });
+    expect(r.success).toBe(true);
+  });
+});
+
+describe("sessionStartSchema visit_id", () => {
+  it("aceita visit_id anónimo", () => {
+    const r = sessionStartSchema.safeParse({
+      restaurant_name: "Sabores",
+      phone: "+258841234567",
+      consent_analytics: true,
+      consent_contact: true,
+      visit_id: "11111111-1111-4111-8111-111111111111",
+    });
+    expect(r.success).toBe(true);
+  });
 });
 
 describe("sanitizeMetadata", () => {

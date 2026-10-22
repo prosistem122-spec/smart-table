@@ -132,6 +132,7 @@ export async function POST(req: NextRequest) {
       user_agent: data.user_agent || null,
       consent_analytics: data.consent_analytics,
       resumed_from_session_id: resumed ? data.resume_session_id || null : null,
+      visit_id: data.visit_id || null,
       last_page: "lead_form",
       last_step: "lead_identification",
       last_step_index: -1,

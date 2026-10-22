@@ -32,14 +32,10 @@ export function LeadForm({
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
-    track("landing_view", {
-      page: "home",
-      element_name: "landing",
-      dedupe_key: `landing_${typeof window !== "undefined" ? window.location.pathname : "home"}`,
-    });
     track("lead_form_view", {
       page: "lead_form",
       element_name: "lead_identification_form",
+      previous_page: "sales",
       dedupe_key: "lead_form_view_once",
     });
     setupUnloadFlush();

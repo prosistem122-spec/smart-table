@@ -2,24 +2,26 @@
 
 export function labelEventName(eventName: string): string {
   const map: Record<string, string> = {
-    landing_view: "Visitou a página inicial",
+    landing_view: "Visitou a página de vendas",
     lead_form_view: "Viu o formulário de identificação",
     lead_form_submitted: "Preencheu os dados de contacto",
-    funnel_started: "Iniciou o funil",
+    funnel_started: "Iniciou o funil de análise",
     step_view: "Visualizou uma etapa",
     step_completed: "Concluiu uma etapa",
     button_click: "Clicou num botão",
     answer_selected: "Selecionou uma resposta",
     step_back: "Regressou à etapa anterior",
     section_view: "Viu uma secção",
+    scroll_depth: "Profundidade de scroll",
+    demo_step_view: "Interagiu com a demonstração",
     calculator_used: "Utilizou a simulação",
     result_viewed: "Visualizou os resultados",
-    cta_clicked: "Clicou numa chamada para acção",
+    cta_clicked: "Clicou em «Começar grátis» / CTA",
     whatsapp_click: "Clicou no WhatsApp",
     contact_requested: "Pediu contacto",
     funnel_completed: "Concluiu a análise",
     session_resumed: "Retomou uma sessão",
-    session_inactive: "Sessão marcada como inactiva",
+    session_inactive: "Sessão marcada como inactiva (não prova abandono)",
   };
   return map[eventName] || eventName;
 }
@@ -41,8 +43,16 @@ export function describeEvent(ev: {
       return `Selecionou: ${ev.value || "—"}`;
     case "section_view":
       return `Viu a secção ${ev.element_name || "—"}`;
+    case "scroll_depth":
+      return `Scroll ≈ ${ev.value || "—"}%`;
+    case "demo_step_view":
+      return `Demonstração · passo ${ev.value || ev.step_id || "—"}`;
     case "cta_clicked":
       return `Clicou no CTA ${ev.element_name || ""}`.trim();
+    case "landing_view":
+      return "Entrou na página de vendas";
+    case "funnel_started":
+      return "Entrou no funil original de 20 etapas";
     default:
       return labelEventName(ev.event_name);
   }
@@ -50,10 +60,12 @@ export function describeEvent(ev: {
 
 export function isHighlightEvent(eventName: string): boolean {
   return [
+    "landing_view",
     "lead_form_submitted",
     "funnel_started",
     "funnel_completed",
     "cta_clicked",
+    "demo_step_view",
     "whatsapp_click",
     "contact_requested",
   ].includes(eventName);

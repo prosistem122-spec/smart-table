@@ -11,6 +11,8 @@ const EVENT_NAMES = [
   "answer_selected",
   "step_back",
   "section_view",
+  "scroll_depth",
+  "demo_step_view",
   "calculator_used",
   "result_viewed",
   "cta_clicked",
@@ -46,6 +48,7 @@ export const sessionStartSchema = z.object({
     })
     .optional(),
   user_agent: z.string().max(400).optional().nullable(),
+  visit_id: z.string().trim().min(8).max(80).optional().nullable(),
 });
 
 export const eventItemSchema = z.object({

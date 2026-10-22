@@ -19,8 +19,8 @@ export default function PrivacyPage() {
       <p style={{ color: "#2446EE", fontWeight: 700 }}>Smart Table</p>
       <h1 style={{ letterSpacing: "-0.02em" }}>Política de privacidade</h1>
       <p style={{ color: "#6B6F80" }}>
-        Esta página explica que dados pessoais recolhemos na análise gratuita e
-        como os utilizamos.
+        Esta página explica que dados pessoais recolhemos na página de vendas,
+        na análise gratuita e como os utilizamos.
       </p>
 
       <h2>Que dados recolhemos</h2>
@@ -29,8 +29,14 @@ export default function PrivacyPage() {
         <li>Número de telefone / WhatsApp</li>
         <li>Respostas que fores dando no funil (tipo de restaurante, mesas, etc.)</li>
         <li>
-          Eventos de navegação no funil (etapas vistas, botões relevantes),
-          apenas com o teu consentimento de analytics
+          Eventos de navegação na página de vendas e no funil (secções vistas,
+          profundidade de scroll aproximada, cliques em chamadas para acção,
+          passos da demonstração, etapas do funil), apenas com o teu
+          consentimento de analytics
+        </li>
+        <li>
+          Um identificador anónimo de visita (sem dados pessoais) para associar
+          a actividade na página de vendas à sessão depois da identificação
         </li>
         <li>Parâmetros de campanha (UTM) e referrer, quando disponíveis</li>
       </ul>
@@ -38,8 +44,9 @@ export default function PrivacyPage() {
       <h2>Finalidades</h2>
       <p>
         Utilizamos estes dados para personalizar a análise, contactar-te sobre a
-        solução Smart Table (se autorizares) e compreender onde o funil pode
-        ser melhorado. Não vendemos os teus dados.
+        solução Smart Table (se autorizares) e compreender a jornada comercial
+        desde a página de vendas até à conclusão do funil. Não vendemos os teus
+        dados.
       </p>
 
       <h2>O que não recolhemos</h2>
@@ -66,7 +73,11 @@ export default function PrivacyPage() {
 
       <p>
         <Link href="/" style={{ color: "#2446EE", fontWeight: 600 }}>
-          ← Voltar à análise
+          ← Voltar à página inicial
+        </Link>
+        {" · "}
+        <Link href="/analise" style={{ color: "#2446EE", fontWeight: 600 }}>
+          Iniciar análise
         </Link>
       </p>
     </main>

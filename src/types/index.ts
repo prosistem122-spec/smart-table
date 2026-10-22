@@ -25,6 +25,8 @@ export type EventName =
   | "answer_selected"
   | "step_back"
   | "section_view"
+  | "scroll_depth"
+  | "demo_step_view"
   | "calculator_used"
   | "result_viewed"
   | "cta_clicked"

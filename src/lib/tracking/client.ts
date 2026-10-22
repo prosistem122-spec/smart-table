@@ -1,6 +1,7 @@
 "use client";
 
 import type { Attribution, EventName, TrackingEventPayload } from "@/types";
+import { getOrCreateVisitId, getVisitId } from "@/lib/tracking/visit";
 
 const STORAGE_KEY = "st_tracking_ctx";
 const QUEUE_KEY = "st_event_queue";
@@ -84,12 +85,17 @@ export function track(
     }
   }
 
+  const visitId = getVisitId() || getOrCreateVisitId();
   const item: QueuedEvent = {
     event_name,
     occurred_at: new Date().toISOString(),
     consent_analytics: ctx?.consentAnalytics,
     client_id: uid(),
     ...payload,
+    metadata: {
+      visit_id: visitId,
+      ...(payload.metadata || {}),
+    },
   };
 
   const q = loadQueue();
@@ -185,11 +191,13 @@ export async function startSession(input: {
   attribution?: Attribution;
 }): Promise<{ leadId: string; sessionId: string; resumed: boolean }> {
   const existing = loadCtx();
+  const visitId = getVisitId() || getOrCreateVisitId();
   const res = await fetch("/api/public/session", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       ...input,
+      visit_id: visitId,
       existing_lead_id: existing?.leadId,
       resume_session_id: existing?.sessionId,
       user_agent: typeof navigator !== "undefined" ? navigator.userAgent.slice(0, 400) : null,
