@@ -67,8 +67,26 @@ interface ProfileData {
     whatsapp_clicked: boolean;
     contact_requested: boolean;
     approx_interaction_ms: number;
+    total_session_ms?: number;
+    video_watch_ms?: number;
+    page_times?: {
+      page: string;
+      step_id: string;
+      duration_ms: number;
+      source: string;
+    }[];
     inactivity_rule: string;
   };
+}
+
+function formatDuration(ms: number): string {
+  const s = Math.round(ms / 1000);
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  if (m < 60) return r ? `${m}m ${r}s` : `${m}m`;
+  const h = Math.floor(m / 60);
+  return `${h}h ${m % 60}m`;
 }
 
 const TIMELINE_PAGE = 25;
@@ -249,12 +267,17 @@ export default function LeadProfilePage() {
 
       <div className="panel">
         <h2 className="panel-title">Resumo comportamental</h2>
-        <div className="kpi-grid" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+        <div className="kpi-grid" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
           <KpiCard label="Sessões" value={behavioral.sessions_count} icon="sessions" />
           <KpiCard label="Eventos" value={behavioral.events_count} icon="leads" />
           <KpiCard
-            label="Interação aprox."
-            value={`${Math.round(behavioral.approx_interaction_ms / 1000)}s`}
+            label="Tempo total"
+            value={formatDuration(behavioral.total_session_ms || behavioral.approx_interaction_ms)}
+            icon="rate"
+          />
+          <KpiCard
+            label="Vídeo visto"
+            value={formatDuration(behavioral.video_watch_ms || 0)}
             icon="rate"
           />
         </div>
@@ -307,6 +330,38 @@ export default function LeadProfilePage() {
         <p className="muted" style={{ margin: "12px 0 0", fontSize: "0.78rem" }}>
           {behavioral.inactivity_rule}
         </p>
+      </div>
+
+      <div className="panel">
+        <h2 className="panel-title">Tempo por página / etapa</h2>
+        <p className="panel-hint">
+          Quanto tempo o cliente permaneceu em cada ecrã do funil (com base em
+          eventos de permanência, conclusão e vídeo).
+        </p>
+        {!behavioral.page_times?.length ? (
+          <p className="muted" style={{ margin: 0 }}>
+            Ainda sem dados de tempo por página.
+          </p>
+        ) : (
+          <table className="page-time-table">
+            <thead>
+              <tr>
+                <th>Etapa</th>
+                <th>Página</th>
+                <th>Tempo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {behavioral.page_times.map((pt) => (
+                <tr key={`${pt.step_id}-${pt.source}`}>
+                  <td>{formatStepLabel(pt.step_id)}</td>
+                  <td>{pt.page}</td>
+                  <td className="num">{formatDuration(pt.duration_ms)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
       <div className="panel">

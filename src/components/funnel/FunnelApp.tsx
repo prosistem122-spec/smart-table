@@ -9,7 +9,13 @@ import {
   coversForMesas,
   fmtN,
 } from "./steps";
+import { VslPlayer } from "./VslPlayer";
 import { track, saveAnswers } from "@/lib/tracking/client";
+import {
+  DEFAULT_VIDEO_SETTINGS,
+  type FunnelVideoSettings,
+  type VideoSlot,
+} from "@/lib/video/settings";
 
 interface Props {
   seedRestaurantName?: string;
@@ -18,6 +24,13 @@ interface Props {
 }
 
 type Answers = Record<string, string>;
+
+function slotForStep(stepId: string): VideoSlot | null {
+  if (stepId === "hero_intro" || stepId === "hero_social_proof") {
+    return stepId;
+  }
+  return null;
+}
 
 export function FunnelApp({
   seedRestaurantName = "",
@@ -38,12 +51,43 @@ export function FunnelApp({
   const [contactDraft, setContactDraft] = useState<Answers>({});
   const [contactErrors, setContactErrors] = useState<Record<string, boolean>>({});
   const [counter, setCounter] = useState(0);
+  const [videoBySlot, setVideoBySlot] = useState<
+    Record<VideoSlot, FunnelVideoSettings>
+  >(DEFAULT_VIDEO_SETTINGS);
   const stepEnteredAt = useRef(Date.now());
   const viewedSteps = useRef(new Set<number>());
   const calcTracked = useRef(false);
 
   const step = STEPS[cur];
   const stepId = step.id;
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/public/video-settings");
+        if (!res.ok) return;
+        const json = (await res.json()) as {
+          settings?: FunnelVideoSettings[];
+        };
+        if (cancelled || !json.settings?.length) return;
+        setVideoBySlot((prev) => {
+          const next = { ...prev };
+          for (const s of json.settings!) {
+            if (s.slot === "hero_intro" || s.slot === "hero_social_proof") {
+              next[s.slot] = s;
+            }
+          }
+          return next;
+        });
+      } catch {
+        /* sem vídeo configurado — placeholder */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const nomeTxt = useMemo(
     () => (ans.nome?.trim() ? ans.nome.trim() : "o teu restaurante"),
@@ -77,6 +121,15 @@ export function FunnelApp({
       if (i < 0 || i >= STEPS.length) return;
       const prev = STEPS[cur];
       const next = STEPS[i];
+      const dwell = durationMs();
+      track("page_dwell", {
+        page: "funnel",
+        step_id: prev.id,
+        step_index: cur,
+        element_name: "step_leave",
+        action: i < cur ? "back" : "forward",
+        duration_ms: dwell,
+      });
       if (i < cur) {
         track("step_back", {
           page: "funnel",
@@ -86,7 +139,7 @@ export function FunnelApp({
           next_page: next.id,
           element_name: "btn_step_back",
           action: "back",
-          duration_ms: durationMs(),
+          duration_ms: dwell,
         });
       }
       if (next.type === "contact") setContactExpanded(false);
@@ -432,27 +485,26 @@ export function FunnelApp({
       {step.type === "hero" && step.video && (
         <>
           <h1 className="h1-big" dangerouslySetInnerHTML={{ __html: titleHtml }} />
-          <div className="vsl-wrap">
-            <div className="vsl">
-              <div className="vsl-play">▶</div>
-              <div className="vsl-scrub">
-                <div />
-              </div>
-            </div>
-          </div>
-          <button
-            type="button"
-            className="btn btn-primary"
-            data-track={cur === 0 ? "cta_quero_ferramenta" : "cta_obter_smart_table"}
-            onClick={() =>
-              onPrimaryCta(
-                step.cta || "",
-                cur === 0 ? "cta_quero_ferramenta" : "cta_obter_smart_table"
-              )
-            }
-          >
-            {step.cta}
-          </button>
+          {(() => {
+            const slot = slotForStep(stepId);
+            const cfg = slot
+              ? videoBySlot[slot]
+              : DEFAULT_VIDEO_SETTINGS.hero_intro;
+            const ctaTrack =
+              cur === 0 ? "cta_quero_ferramenta" : "cta_obter_smart_table";
+            return (
+              <VslPlayer
+                videoUrl={cfg.video_url}
+                ctaDelaySeconds={cfg.cta_delay_seconds}
+                timelineCurve={cfg.timeline_curve}
+                stepId={stepId}
+                stepIndex={cur}
+                ctaLabel={step.cta || ""}
+                ctaTrack={ctaTrack}
+                onCta={() => onPrimaryCta(step.cta || "", ctaTrack)}
+              />
+            );
+          })()}
         </>
       )}
 

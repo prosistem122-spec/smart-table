@@ -34,7 +34,11 @@ export type EventName =
   | "contact_requested"
   | "funnel_completed"
   | "session_resumed"
-  | "session_inactive";
+  | "session_inactive"
+  | "video_play"
+  | "video_progress"
+  | "video_ended"
+  | "page_dwell";
 
 export interface Attribution {
   source?: string | null;

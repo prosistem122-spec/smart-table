@@ -12,6 +12,8 @@ O funil visual original está preservado em [`legacy/smart-table-funil-original.
 | Funil original (20 etapas) com tracking | Implementado |
 | APIs públicas session/events/answers | Implementado |
 | Painel admin + lista + perfil + timeline | Implementado |
+| Vídeos VSL (upload, delay CTA, timeline manipulada) | Implementado |
+| Tempo por página no perfil do lead | Implementado |
 | Migração SQL + RLS | Implementado |
 | Política de privacidade | Implementado |
 | Testes unitários (Vitest) | Implementado |
@@ -47,9 +49,13 @@ cp .env.example .env.local
 
 3. Aplicar a migração no SQL Editor do Supabase (ou CLI):
 
-[`supabase/migrations/001_init.sql`](supabase/migrations/001_init.sql)
+Migrações em [`supabase/migrations/`](supabase/migrations/) (aplicar por ordem):
 
-Cria: `leads`, `sessions`, `events`, `funnel_answers`, `lead_notes`, `admin_profiles`, índices, RLS e `is_admin()`.
+- `001_init.sql` — `leads`, `sessions`, `events`, `funnel_answers`, `lead_notes`, `admin_profiles`, RLS
+- `002_visit_id.sql` — `sessions.visit_id`
+- `003_funnel_video.sql` — `funnel_video_settings` + bucket Storage `funnel-videos`
+
+No admin: **Vídeos** (`/admin/video`) para upload/remover vídeo, delay do botão CTA e curva da barra de progresso.
 
 4. Criar o primeiro administrador pela UI:
 

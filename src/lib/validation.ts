@@ -21,6 +21,10 @@ const EVENT_NAMES = [
   "funnel_completed",
   "session_resumed",
   "session_inactive",
+  "video_play",
+  "video_progress",
+  "video_ended",
+  "page_dwell",
 ] as const;
 
 const metadataSchema = z
@@ -110,6 +114,14 @@ export const adminRegisterSchema = z.object({
   password: z.string().min(8).max(72),
   display_name: z.string().trim().min(2).max(80),
   invite_code: z.string().trim().max(120).optional(),
+});
+
+export const videoSettingsUpdateSchema = z.object({
+  slot: z.enum(["hero_intro", "hero_social_proof"]),
+  cta_delay_seconds: z.number().int().min(0).max(3600).optional(),
+  timeline_curve: z.number().min(1).max(5).optional(),
+  video_url: z.string().url().max(2000).nullable().optional(),
+  clear_video: z.boolean().optional(),
 });
 
 const FORBIDDEN_META_KEYS = [

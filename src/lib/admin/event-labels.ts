@@ -22,6 +22,10 @@ export function labelEventName(eventName: string): string {
     funnel_completed: "Concluiu a análise",
     session_resumed: "Retomou uma sessão",
     session_inactive: "Sessão marcada como inactiva (não prova abandono)",
+    video_play: "Reproduziu o vídeo",
+    video_progress: "Progresso do vídeo",
+    video_ended: "Terminou o vídeo",
+    page_dwell: "Tempo na página",
   };
   return map[eventName] || eventName;
 }
@@ -53,6 +57,14 @@ export function describeEvent(ev: {
       return "Entrou na página de vendas";
     case "funnel_started":
       return "Entrou no funil original de 20 etapas";
+    case "video_play":
+      return `Reproduziu o vídeo (${ev.step_id || "—"})`;
+    case "video_progress":
+      return `Vídeo ≈ ${ev.value || "—"}% (${ev.step_id || "—"})`;
+    case "video_ended":
+      return `Concluiu o vídeo (${ev.step_id || "—"})`;
+    case "page_dwell":
+      return `Permanência em ${ev.step_id || "página"}`;
     default:
       return labelEventName(ev.event_name);
   }

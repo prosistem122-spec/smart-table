@@ -1100,6 +1100,124 @@ code {
   box-shadow: 0 0 0 3px var(--st-blue-soft, #dbe6fe);
 }
 
+/* —— Vídeos do funil —— */
+.video-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.video-slot-panel .panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.video-slot-grid {
+  display: grid;
+  grid-template-columns: minmax(160px, 220px) 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.video-preview-frame {
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #0b0d18;
+  border: 1px solid var(--st-line);
+}
+
+.video-preview-frame video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.video-preview-empty {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 0.85rem;
+}
+
+.video-settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.video-settings-form input[type="range"] {
+  width: 100%;
+  accent-color: var(--st-blue);
+}
+
+.curve-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 8px;
+  font-size: 0.75rem;
+  color: var(--st-muted);
+}
+
+.curve-preview em {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--st-blue);
+}
+
+.alert.ok {
+  background: var(--st-success-bg);
+  color: var(--st-success);
+  border: 1px solid #a7f3d0;
+  border-radius: var(--st-radius-sm);
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
+.page-time-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.page-time-table th,
+.page-time-table td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--st-line);
+}
+
+.page-time-table th {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--st-muted);
+  font-weight: 600;
+}
+
+.page-time-table td.num {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+@media (max-width: 720px) {
+  .video-slot-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .video-preview-col {
+    max-width: 220px;
+  }
+}
+
 @media (max-width: 640px) {
   .admin-nav-inner {
     gap: 12px;
