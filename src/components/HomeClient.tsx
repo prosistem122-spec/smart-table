@@ -1,9 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
-import { LeadForm } from "@/components/lead/LeadForm";
 import { FunnelApp } from "@/components/funnel/FunnelApp";
+import {
+  setupUnloadFlush,
+  startInactivityWatcher,
+} from "@/lib/tracking/client";
+import { recordPageVisit } from "@/lib/tracking/visit-api";
 import "@/styles/funnel.css";
 
 interface Props {
@@ -17,11 +21,13 @@ export function HomeClient({
   initialRestaurantName = "",
   initialPhone = "",
 }: Props) {
-  const [started, setStarted] = useState(false);
-  const [seed, setSeed] = useState({
-    restaurantName: initialRestaurantName,
-    phone: initialPhone,
-  });
+  useEffect(() => {
+    void recordPageVisit("video");
+    setupUnloadFlush();
+    return startInactivityWatcher(
+      Number(process.env.NEXT_PUBLIC_INACTIVE_AFTER_MS) || 15 * 60 * 1000
+    );
+  }, []);
 
   return (
     <div className="funnel-page">
@@ -32,22 +38,11 @@ export function HomeClient({
           </Link>
         </div>
         <div className="card">
-          {!started ? (
-            <LeadForm
-              initialRestaurantName={initialRestaurantName}
-              initialPhone={initialPhone}
-              onStarted={(info) => {
-                setSeed(info);
-                setStarted(true);
-              }}
-            />
-          ) : (
-            <FunnelApp
-              seedRestaurantName={seed.restaurantName}
-              seedPhone={seed.phone}
-              whatsappNumber={whatsappNumber}
-            />
-          )}
+          <FunnelApp
+            seedRestaurantName={initialRestaurantName}
+            seedPhone={initialPhone}
+            whatsappNumber={whatsappNumber}
+          />
         </div>
         <div className="footer-tag">A nova era dos restaurantes</div>
       </div>

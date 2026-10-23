@@ -75,9 +75,37 @@ export async function computeDashboardMetrics(
     funnelStarted = startedCount || 0;
   }
 
-  const uniqueVisitors = list.length;
   const completionRate =
     funnelStarted > 0 ? Math.round((completed / funnelStarted) * 1000) / 10 : 0;
+
+  // Visitantes anónimos (landing + vídeo) — sem exigir lead
+  let landingVisitors = 0;
+  let videoVisitors = 0;
+  let uniqueVisitors = list.length;
+  {
+    let visitsQuery = supabase
+      .from("page_visits")
+      .select("visit_id, landing_seen_at, video_seen_at, first_seen_at");
+    if (filters.from) {
+      visitsQuery = visitsQuery.gte("first_seen_at", filters.from);
+    }
+    if (filters.to) {
+      visitsQuery = visitsQuery.lte("first_seen_at", filters.to);
+    }
+    if (filters.source) {
+      visitsQuery = visitsQuery.or(
+        `source.eq.${filters.source},utm_source.eq.${filters.source}`
+      );
+    }
+    if (filters.campaign) {
+      visitsQuery = visitsQuery.eq("utm_campaign", filters.campaign);
+    }
+    const { data: visits } = await visitsQuery;
+    const rows = visits || [];
+    landingVisitors = rows.filter((v) => v.landing_seen_at).length;
+    videoVisitors = rows.filter((v) => v.video_seen_at).length;
+    uniqueVisitors = rows.length || list.length;
+  }
 
   // Origens
   const sourcesMap = new Map<string, number>();
@@ -125,6 +153,8 @@ export async function computeDashboardMetrics(
     totals: {
       leads: list.length,
       unique_visitors: uniqueVisitors,
+      landing_visitors: landingVisitors,
+      video_visitors: videoVisitors,
       sessions: sessionsCount,
       analyses_started: funnelStarted,
       analyses_completed: completed,

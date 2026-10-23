@@ -10,8 +10,15 @@ import {
   fmtN,
 } from "./steps";
 import { VslPlayer } from "./VslPlayer";
-import { track, saveAnswers } from "@/lib/tracking/client";
 import {
+  track,
+  saveAnswers,
+  startSession,
+  getTrackingContext,
+} from "@/lib/tracking/client";
+import { readClientAttribution } from "@/lib/attribution";
+import {
+  DEFAULT_HEADLINES,
   DEFAULT_VIDEO_SETTINGS,
   type FunnelVideoSettings,
   type VideoSlot,
@@ -275,7 +282,49 @@ export function FunnelApp({
     go(cur + 1);
   }
 
-  function submitContact(final: boolean) {
+  async function ensureLeadSession(nextAns: Answers) {
+    if (getTrackingContext()) return;
+    const phone = (nextAns.whatsapp || nextAns.telefone || "").trim();
+    const restaurant =
+      (nextAns.nome || ans.nome || "").trim() || "Restaurante";
+    if (!phone) return;
+    try {
+      const result = await startSession({
+        restaurant_name: restaurant,
+        phone,
+        consent_analytics: true,
+        consent_contact: true,
+        attribution: readClientAttribution(),
+      });
+      track("lead_form_submitted", {
+        page: "funnel",
+        step_id: stepId,
+        step_index: cur,
+        element_name: "contact_capture",
+        action: "submit",
+        value: restaurant,
+      });
+      if (result.resumed) {
+        track("session_resumed", {
+          page: "funnel",
+          step_id: stepId,
+          element_name: "session",
+          action: "resume",
+        });
+      }
+      track("funnel_started", {
+        page: "funnel",
+        step_id: "hero_intro",
+        step_index: 0,
+        element_name: "funnel",
+        action: "start",
+      });
+    } catch {
+      /* funil continua localmente se a API falhar */
+    }
+  }
+
+  async function submitContact(final: boolean) {
     const nextAns = { ...ans };
     const errs: Record<string, boolean> = {};
     let ok = true;
@@ -292,6 +341,8 @@ export function FunnelApp({
     if (!ok) return;
     if (!nextAns.telefone && nextAns.whatsapp) nextAns.telefone = nextAns.whatsapp;
     setAns(nextAns);
+
+    await ensureLeadSession(nextAns);
 
     const answers = CONTACT_FIELDS.filter((f) => nextAns[f.key]).map((f) => ({
       question_key: f.key,
@@ -462,7 +513,16 @@ export function FunnelApp({
   }
 
   const insights = buildInsights();
-  const titleHtml = step.title ? fill(step.title) : "";
+  const videoSlot = step.video ? slotForStep(stepId) : null;
+  const videoHeadline =
+    videoSlot &&
+    (videoBySlot[videoSlot]?.headline_html?.trim() ||
+      DEFAULT_HEADLINES[videoSlot] ||
+      step.title ||
+      "");
+  const titleHtml = fill(
+    step.video ? videoHeadline || step.title || "" : step.title || ""
+  );
   const labelHtml = step.label ? fill(step.label) : "";
 
   return (
@@ -872,7 +932,7 @@ export function FunnelApp({
             type="button"
             className="btn btn-primary"
             data-track={step.final ? "cta_final_contact" : "btn_contact_continue"}
-            onClick={() => submitContact(!!step.final)}
+            onClick={() => void submitContact(!!step.final)}
           >
             {step.cta || "Continuar"}
           </button>

@@ -4,6 +4,7 @@ import { authErrorResponse } from "@/lib/admin/errors";
 import { createServiceClient } from "@/lib/supabase/server";
 import { videoSettingsUpdateSchema } from "@/lib/validation";
 import {
+  DEFAULT_HEADLINES,
   DEFAULT_VIDEO_SETTINGS,
   VIDEO_SLOTS,
   type FunnelVideoSettings,
@@ -32,15 +33,22 @@ function mapRow(
     video_url: string | null;
     cta_delay_seconds: number;
     timeline_curve: number;
+    headline_html?: string | null;
     updated_at?: string;
   }
 ): FunnelVideoSettings {
+  const slot = row.slot as VideoSlot;
+  const headline =
+    row.headline_html?.trim() ||
+    DEFAULT_HEADLINES[slot] ||
+    DEFAULT_VIDEO_SETTINGS[slot].headline_html;
   return {
-    slot: row.slot as VideoSlot,
+    slot,
     video_path: row.video_path,
     video_url: resolveUrl(supabase, row.video_path, row.video_url),
     cta_delay_seconds: row.cta_delay_seconds,
     timeline_curve: Number(row.timeline_curve),
+    headline_html: headline,
     updated_at: row.updated_at,
   };
 }
@@ -80,8 +88,14 @@ export async function PUT(req: NextRequest) {
     }
 
     const supabase = createServiceClient();
-    const { slot, cta_delay_seconds, timeline_curve, video_url, clear_video } =
-      parsed.data;
+    const {
+      slot,
+      cta_delay_seconds,
+      timeline_curve,
+      video_url,
+      clear_video,
+      headline_html,
+    } = parsed.data;
 
     const { data: existing } = await supabase
       .from("funnel_video_settings")
@@ -99,6 +113,9 @@ export async function PUT(req: NextRequest) {
     }
     if (timeline_curve !== undefined) {
       patch.timeline_curve = timeline_curve;
+    }
+    if (headline_html !== undefined) {
+      patch.headline_html = headline_html?.trim() || null;
     }
 
     if (clear_video) {
@@ -140,6 +157,10 @@ export async function PUT(req: NextRequest) {
             patch.video_url !== undefined
               ? patch.video_url
               : existing?.video_url ?? null,
+          headline_html:
+            patch.headline_html !== undefined
+              ? patch.headline_html
+              : existing?.headline_html ?? null,
           updated_at: patch.updated_at,
           updated_by: admin.userId,
         },

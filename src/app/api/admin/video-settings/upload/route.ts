@@ -97,6 +97,7 @@ export async function POST(req: NextRequest) {
           video_url: pub.publicUrl,
           cta_delay_seconds: existing?.cta_delay_seconds ?? 45,
           timeline_curve: existing?.timeline_curve ?? 2.2,
+          headline_html: existing?.headline_html ?? null,
           updated_at: new Date().toISOString(),
           updated_by: admin.userId,
         },
@@ -114,6 +115,7 @@ export async function POST(req: NextRequest) {
         video_url: pub.publicUrl,
         cta_delay_seconds: data.cta_delay_seconds,
         timeline_curve: Number(data.timeline_curve),
+        headline_html: data.headline_html ?? null,
         updated_at: data.updated_at,
       },
     });

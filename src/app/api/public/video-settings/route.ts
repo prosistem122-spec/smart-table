@@ -1,5 +1,6 @@
 import { tryCreateServiceClient } from "@/lib/supabase/server";
 import {
+  DEFAULT_HEADLINES,
   DEFAULT_VIDEO_SETTINGS,
   VIDEO_SLOTS,
   type FunnelVideoSettings,
@@ -25,6 +26,7 @@ function normalizeRow(
     video_url: string | null;
     cta_delay_seconds: number;
     timeline_curve: number;
+    headline_html?: string | null;
   }
 ): FunnelVideoSettings {
   const slot = row.slot as VideoSlot;
@@ -35,6 +37,8 @@ function normalizeRow(
     video_url: fromStorage || row.video_url,
     cta_delay_seconds: row.cta_delay_seconds,
     timeline_curve: Number(row.timeline_curve),
+    headline_html:
+      row.headline_html?.trim() || DEFAULT_HEADLINES[slot] || null,
   };
 }
 
@@ -49,7 +53,9 @@ export async function GET() {
   try {
     const { data, error } = await supabase
       .from("funnel_video_settings")
-      .select("slot, video_path, video_url, cta_delay_seconds, timeline_curve");
+      .select(
+        "slot, video_path, video_url, cta_delay_seconds, timeline_curve, headline_html"
+      );
 
     if (error) throw error;
 

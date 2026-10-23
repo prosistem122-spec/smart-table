@@ -11,7 +11,7 @@
 .funnel-page::before,.funnel-page::after{content:"";position:fixed;width:340px;height:340px;border-radius:50%;background:var(--blue);opacity:.07;filter:blur(74px);z-index:0;pointer-events:none;}
 .funnel-page::before{top:-120px;right:-120px;}
 .funnel-page::after{bottom:-140px;left:-140px;}
-.funnel-page .stage{width:100%;max-width:440px;position:relative;z-index:1;}
+.funnel-page .stage{width:100%;max-width:480px;position:relative;z-index:1;}
 .funnel-page .brand{font-weight:700;font-size:.95rem;letter-spacing:-.01em;margin-bottom:14px;color:var(--blue);}
 .funnel-page .card{position:relative;background:var(--card-bg);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 24px 26px;overflow:hidden;}
 .funnel-page .footer-tag{text-align:center;font-size:.76rem;font-weight:700;color:var(--blue);margin-top:16px;letter-spacing:.02em;
@@ -103,7 +103,7 @@ input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;bac
 @media (prefers-reduced-motion:reduce){.progress>div{transition:none;}.enter>*,.btn-primary,.chart polyline,.chart circle,.procline,.procbar>div,.reveal,.footer-tag,.stage-dot.gift::after{animation:none!important;opacity:1!important;stroke-dashoffset:0!important;}}
 
 .vsl-wrap{display:flex;justify-content:center;}
-.vsl{position:relative;border-radius:18px;overflow:hidden;margin:0 0 20px;width:210px;aspect-ratio:9/16;flex:none;
+.vsl{position:relative;border-radius:18px;overflow:hidden;margin:0 0 20px;width:280px;max-width:min(280px,86vw);aspect-ratio:9/16;flex:none;
   background:repeating-linear-gradient(115deg,#0B0D18,#0B0D18 10px,#141A33 10px,#141A33 20px);
   display:flex;align-items:center;justify-content:center;}
 .vsl.has-video{background:#0B0D18;}

@@ -15,6 +15,8 @@ interface Metrics {
   totals: {
     leads: number;
     unique_visitors: number;
+    landing_visitors: number;
+    video_visitors: number;
     sessions: number;
     analyses_started: number;
     analyses_completed: number;
@@ -50,6 +52,8 @@ const emptyMetrics: Metrics = {
   totals: {
     leads: 0,
     unique_visitors: 0,
+    landing_visitors: 0,
+    video_visitors: 0,
     sessions: 0,
     analyses_started: 0,
     analyses_completed: 0,
@@ -248,6 +252,8 @@ export default function AdminDashboardPage() {
       ) : (
         <>
           <div className="kpi-grid kpi-9">
+            <KpiCard label="Visitantes na landing" value={t.landing_visitors} icon="visitors" />
+            <KpiCard label="Visitantes no vídeo" value={t.video_visitors} icon="visitors" />
             <KpiCard label="Potenciais clientes" value={t.leads} icon="leads" />
             <KpiCard label="Visitantes únicos" value={t.unique_visitors} icon="visitors" />
             <KpiCard label="Sessões" value={t.sessions} icon="sessions" />

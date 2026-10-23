@@ -4,7 +4,7 @@ import { getWhatsAppNumber } from "@/lib/env";
 export const metadata = {
   title: "Análise gratuita — Smart Table",
   description:
-    "Identifica o teu restaurante e inicia a análise gratuita Smart Table.",
+    "Vê o vídeo e inicia a análise gratuita Smart Table para o teu restaurante.",
 };
 
 interface Props {

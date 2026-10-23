@@ -7,6 +7,7 @@ import {
   startInactivityWatcher,
 } from "@/lib/tracking/client";
 import { getOrCreateVisitId } from "@/lib/tracking/visit";
+import { recordPageVisit } from "@/lib/tracking/visit-api";
 import { initSalesLanding } from "@/components/sales/initSalesLanding";
 import "@/styles/sales.css";
 
@@ -24,6 +25,7 @@ export function SalesPageClient({ html, whatsappNumber }: Props) {
 
   useEffect(() => {
     const visitId = getOrCreateVisitId();
+    void recordPageVisit("landing");
 
     track("landing_view", {
       page: "sales",

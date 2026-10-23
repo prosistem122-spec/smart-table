@@ -13,36 +13,30 @@ test.describe("Página de vendas + funil", () => {
     ).toBeVisible();
   });
 
-  test("Começar grátis leva ao formulário de identificação", async ({
-    page,
-  }) => {
+  test("Começar grátis leva ao vídeo do funil", async ({ page }) => {
     await page.goto("/");
     await page
       .getByRole("link", { name: /Começar grátis|Quero o acesso grátis/i })
       .first()
       .click();
     await expect(page).toHaveURL(/\/analise/);
-    await expect(page.getByText("Vamos analisar o potencial")).toBeVisible();
+    await expect(page.getByText("Smart Table").first()).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Analisar o meu restaurante" })
+      page.getByText(/inteligência artificial|faturamento/i).first()
     ).toBeVisible();
   });
 
-  test("formulário em /analise valida campos", async ({ page }) => {
+  test("/analise abre no VSL sem formulário de identificação", async ({
+    page,
+  }) => {
     await page.goto("/analise");
     await expect(page.getByText("Smart Table").first()).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Analisar o meu restaurante" })
-    ).toBeVisible();
-
-    await page.getByRole("button", { name: "Analisar o meu restaurante" }).click();
-    await expect(page.getByText("Indica o nome do restaurante")).toBeVisible();
-
-    await page.getByPlaceholder("Ex: Sabores da Baixa").fill("Restaurante Teste");
-    await page.getByPlaceholder("+258 84 123 4567").fill("841234567");
-    await page.getByText(/Autorizo a Smart Table a guardar/).click();
-    await page.getByRole("button", { name: "Analisar o meu restaurante" }).click();
-    await expect(page.getByText(/aceitar o contacto/i)).toBeVisible();
+    ).toHaveCount(0);
+    await expect(
+      page.getByText(/Vamos analisar o potencial do teu restaurante/i)
+    ).toHaveCount(0);
   });
 
   test("layout móvel da página de vendas carrega", async ({ browser }) => {

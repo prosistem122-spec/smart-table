@@ -8,8 +8,11 @@ O funil visual original está preservado em [`legacy/smart-table-funil-original.
 
 | Área | Estado |
 |------|--------|
-| Formulário inicial (nome + telefone + consentimento) | Implementado |
+| Landing → vídeo (sem captura precoce) | Implementado |
+| Captura de dados após o vídeo (nome + contacto) | Implementado |
 | Funil original (20 etapas) com tracking | Implementado |
+| Visitantes landing/vídeo no admin | Implementado |
+| Texto acima do VSL editável no admin | Implementado |
 | APIs públicas session/events/answers | Implementado |
 | Painel admin + lista + perfil + timeline | Implementado |
 | Vídeos VSL (upload, delay CTA, timeline manipulada) | Implementado |
@@ -54,6 +57,7 @@ Migrações em [`supabase/migrations/`](supabase/migrations/) (aplicar por ordem
 - `001_init.sql` — `leads`, `sessions`, `events`, `funnel_answers`, `lead_notes`, `admin_profiles`, RLS
 - `002_visit_id.sql` — `sessions.visit_id`
 - `003_funnel_video.sql` — `funnel_video_settings` + bucket Storage `funnel-videos`
+- `004_page_visits_and_headline.sql` — `page_visits` + `headline_html` no VSL
 
 No admin: **Vídeos** (`/admin/video`) para upload/remover vídeo, delay do botão CTA e curva da barra de progresso.
 
@@ -89,9 +93,10 @@ npm run lint         # ESLint
 ## Arquitetura (resumo)
 
 ```
-Visitante → LeadForm → POST /api/public/session
-         → Funil → track() → POST /api/public/events|answers
-Admin Auth → /api/admin/* (JWT + admin_profiles) → métricas / leads / notas
+Visitante → Landing (/) → Visita anónima → /analise (VSL)
+         → Funil (nome restaurante → … → contacto) → POST /api/public/session
+         → track() → POST /api/public/events|answers
+Admin Auth → /api/admin/* (JWT + admin_profiles) → métricas / leads / vídeos
 ```
 
 - Chave **service role** apenas em Route Handlers.
@@ -112,11 +117,11 @@ where retention_until is not null
 
 Agendar via cron / Supabase scheduled function conforme a vossa política.
 
-## Alterações à página inicial
+## Fluxo público
 
-1. Novo ecrã de identificação antes do funil (nome, telefone, consentimentos, link privacidade, CTA **Analisar o meu restaurante**).
-2. Funil original portado para React com os mesmos passos e visual.
-3. Instrumentação de eventos (`data-track` / nomes estáveis) sem bloquear a navegação se a API falhar.
+1. Landing (`/`) → CTAs para `/analise` (vídeo VSL).
+2. Após o vídeo: nome do restaurante e, mais à frente, contacto (cria lead/sessão).
+3. Instrumentação de eventos + visitas anónimas (landing/vídeo) no admin.
 
 ## Configuração manual restante
 

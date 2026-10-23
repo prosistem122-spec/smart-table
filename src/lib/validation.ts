@@ -122,6 +122,7 @@ export const videoSettingsUpdateSchema = z.object({
   timeline_curve: z.number().min(1).max(5).optional(),
   video_url: z.string().url().max(2000).nullable().optional(),
   clear_video: z.boolean().optional(),
+  headline_html: z.string().trim().max(800).nullable().optional(),
 });
 
 const FORBIDDEN_META_KEYS = [

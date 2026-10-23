@@ -133,9 +133,9 @@ export async function POST(req: NextRequest) {
       consent_analytics: data.consent_analytics,
       resumed_from_session_id: resumed ? data.resume_session_id || null : null,
       visit_id: data.visit_id || null,
-      last_page: "lead_form",
-      last_step: "lead_identification",
-      last_step_index: -1,
+      last_page: "funnel",
+      last_step: "contact_partial",
+      last_step_index: 5,
       activity_status: "active",
     })
     .select("id")

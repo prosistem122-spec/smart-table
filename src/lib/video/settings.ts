@@ -12,8 +12,17 @@ export interface FunnelVideoSettings {
   video_url: string | null;
   cta_delay_seconds: number;
   timeline_curve: number;
+  /** HTML do título acima do VSL; null/vazio = texto padrão do funil */
+  headline_html: string | null;
   updated_at?: string;
 }
+
+export const DEFAULT_HEADLINES: Record<VideoSlot, string> = {
+  hero_intro:
+    "Veja como a <mark>inteligência artificial</mark> pode elevar o <mark>faturamento do teu restaurante</mark>",
+  hero_social_proof:
+    "Esta tecnologia já está a <mark>elevar o faturamento</mark> de vários restaurantes",
+};
 
 export const DEFAULT_VIDEO_SETTINGS: Record<VideoSlot, FunnelVideoSettings> = {
   hero_intro: {
@@ -22,6 +31,7 @@ export const DEFAULT_VIDEO_SETTINGS: Record<VideoSlot, FunnelVideoSettings> = {
     video_url: null,
     cta_delay_seconds: 45,
     timeline_curve: 2.2,
+    headline_html: DEFAULT_HEADLINES.hero_intro,
   },
   hero_social_proof: {
     slot: "hero_social_proof",
@@ -29,6 +39,7 @@ export const DEFAULT_VIDEO_SETTINGS: Record<VideoSlot, FunnelVideoSettings> = {
     video_url: null,
     cta_delay_seconds: 30,
     timeline_curve: 2.2,
+    headline_html: DEFAULT_HEADLINES.hero_social_proof,
   },
 };
 

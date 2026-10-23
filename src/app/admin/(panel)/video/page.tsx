@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import {
+  DEFAULT_HEADLINES,
   DEFAULT_VIDEO_SETTINGS,
   VIDEO_SLOT_LABELS,
   VIDEO_SLOTS,
@@ -16,14 +17,20 @@ type SlotState = FunnelVideoSettings & {
   message?: string | null;
   error?: string | null;
   urlDraft?: string;
+  headlineDraft?: string;
 };
 
 export default function AdminVideoPage() {
   const [slots, setSlots] = useState<Record<VideoSlot, SlotState>>(() => ({
-    hero_intro: { ...DEFAULT_VIDEO_SETTINGS.hero_intro, urlDraft: "" },
+    hero_intro: {
+      ...DEFAULT_VIDEO_SETTINGS.hero_intro,
+      urlDraft: "",
+      headlineDraft: DEFAULT_HEADLINES.hero_intro,
+    },
     hero_social_proof: {
       ...DEFAULT_VIDEO_SETTINGS.hero_social_proof,
       urlDraft: "",
+      headlineDraft: DEFAULT_HEADLINES.hero_social_proof,
     },
   }));
   const [loading, setLoading] = useState(true);
@@ -45,6 +52,8 @@ export default function AdminVideoPage() {
           next[s.slot] = {
             ...s,
             urlDraft: s.video_path ? "" : s.video_url || "",
+            headlineDraft:
+              s.headline_html?.trim() || DEFAULT_HEADLINES[s.slot] || "",
             message: null,
             error: null,
           };
@@ -75,6 +84,7 @@ export default function AdminVideoPage() {
         slot,
         cta_delay_seconds: s.cta_delay_seconds,
         timeline_curve: s.timeline_curve,
+        headline_html: (s.headlineDraft || "").trim() || null,
       };
       const draft = (s.urlDraft || "").trim();
       if (draft && !s.video_path) {
@@ -91,6 +101,8 @@ export default function AdminVideoPage() {
       patchSlot(slot, {
         ...updated,
         urlDraft: updated.video_path ? "" : updated.video_url || "",
+        headlineDraft:
+          updated.headline_html?.trim() || DEFAULT_HEADLINES[slot] || "",
         saving: false,
         message: "Definições guardadas.",
       });
@@ -119,6 +131,11 @@ export default function AdminVideoPage() {
       patchSlot(slot, {
         ...updated,
         urlDraft: "",
+        headlineDraft:
+          updated.headline_html?.trim() ||
+          slots[slot].headlineDraft ||
+          DEFAULT_HEADLINES[slot] ||
+          "",
         uploading: false,
         message: "Vídeo enviado com sucesso.",
       });
@@ -145,6 +162,11 @@ export default function AdminVideoPage() {
       patchSlot(slot, {
         ...updated,
         urlDraft: "",
+        headlineDraft:
+          updated.headline_html?.trim() ||
+          slots[slot].headlineDraft ||
+          DEFAULT_HEADLINES[slot] ||
+          "",
         saving: false,
         message: "Vídeo removido.",
       });
@@ -162,9 +184,9 @@ export default function AdminVideoPage() {
     <>
       <h1 className="admin-title">Vídeos do funil</h1>
       <p className="admin-lead">
-        Carrega o vídeo vertical de cada ecrã VSL, define quando aparece o botão
-        CTA e ajusta a barra de progresso (rápida no início, lenta no fim). O
-        cliente não consegue voltar atrás no vídeo.
+        Carrega o vídeo vertical de cada ecrã VSL, edita o texto acima do vídeo,
+        define quando aparece o botão CTA e ajusta a barra de progresso (rápida
+        no início, lenta no fim). O cliente não consegue voltar atrás no vídeo.
       </p>
 
       {loadError && <div className="alert error">{loadError}</div>}
@@ -249,6 +271,29 @@ export default function AdminVideoPage() {
                         Está a usar um ficheiro enviado. Remove-o para usar URL.
                       </p>
                     )}
+                  </div>
+
+                  <div className="filter-field">
+                    <label htmlFor={`${slot}-headline`}>
+                      Texto acima do vídeo (HTML)
+                    </label>
+                    <textarea
+                      id={`${slot}-headline`}
+                      className="admin-input"
+                      rows={3}
+                      placeholder={DEFAULT_HEADLINES[slot]}
+                      value={s.headlineDraft || ""}
+                      onChange={(e) =>
+                        patchSlot(slot, { headlineDraft: e.target.value })
+                      }
+                    />
+                    <p
+                      className="muted"
+                      style={{ margin: "6px 0 0", fontSize: "0.78rem" }}
+                    >
+                      Podes usar {"<mark>texto</mark>"} para destacar. Guarda
+                      para aplicar na página do vídeo.
+                    </p>
                   </div>
 
                   <div className="filter-field">
