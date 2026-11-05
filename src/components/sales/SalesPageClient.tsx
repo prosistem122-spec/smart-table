@@ -7,6 +7,7 @@ import {
   startInactivityWatcher,
 } from "@/lib/tracking/client";
 import { getOrCreateVisitId } from "@/lib/tracking/visit";
+import { journeyMilestone } from "@/lib/tracking/journey";
 import { recordPageVisit } from "@/lib/tracking/visit-api";
 import { initSalesLanding } from "@/components/sales/initSalesLanding";
 import "@/styles/sales.css";
@@ -42,6 +43,7 @@ export function SalesPageClient({ html, whatsappNumber }: Props) {
     const cleanupInit = initSalesLanding({
       whatsappNumber,
       onCtaClick: (element) => {
+        journeyMilestone("free_clicked_at");
         track("cta_clicked", {
           page: "sales",
           element_name: element,

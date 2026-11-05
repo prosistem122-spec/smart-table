@@ -1241,3 +1241,11 @@ code {
     min-width: 80px;
   }
 }
+
+.tracking-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-top: 16px; }
+.tracking-restaurant { border: 1px solid var(--st-line); border-radius: 10px; padding: 14px; margin-top: 12px; }
+.tracking-restaurant summary { cursor: pointer; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
+.tracking-restaurant summary span { font-size: .8rem; color: var(--st-muted); }
+.tracking-step { border-top: 1px solid var(--st-line); padding: 12px 0; }
+.tracking-step ul { margin: 8px 0 0; padding-left: 20px; }
+.tracking-step li { margin: 4px 0; overflow-wrap: anywhere; }
