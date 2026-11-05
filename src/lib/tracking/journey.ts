@@ -17,3 +17,7 @@ export function journeyAnswer(step_id: StepId, question_key: string, answer: str
 export function journeyStep(step_id: StepId, duration_ms: number) {
   if (hasJourneyConsent()) send({ type: "step", consent: true, step_id, duration_ms: Math.min(86400000, Math.max(0, Math.round(duration_ms))) });
 }
+
+export function journeyStepSeen(step_id: StepId) {
+  if (hasJourneyConsent()) send({ type: "step_seen", consent: true, step_id });
+}
