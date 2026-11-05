@@ -16,6 +16,7 @@ import {
   startSession,
   getTrackingContext,
 } from "@/lib/tracking/client";
+import { clearJourneyConsent, enableJourneyCapture, hasJourneyConsent, journeyAnswer, journeyMilestone, journeyStep } from "@/lib/tracking/journey";
 import { readClientAttribution } from "@/lib/attribution";
 import {
   DEFAULT_HEADLINES,
@@ -55,6 +56,7 @@ export function FunnelApp({
   const [calcPct, setCalcPct] = useState(15);
   const [inputValue, setInputValue] = useState("");
   const [inputError, setInputError] = useState(false);
+  const [journeyConsent, setJourneyConsent] = useState(false);
   const [contactDraft, setContactDraft] = useState<Answers>({});
   const [contactErrors, setContactErrors] = useState<Record<string, boolean>>({});
   const [counter, setCounter] = useState(0);
@@ -64,6 +66,8 @@ export function FunnelApp({
   const stepEnteredAt = useRef(Date.now());
   const viewedSteps = useRef(new Set<number>());
   const calcTracked = useRef(false);
+
+  useEffect(() => { clearJourneyConsent(); }, []);
 
   const step = STEPS[cur];
   const stepId = step.id;
@@ -95,6 +99,12 @@ export function FunnelApp({
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    const leave = () => { if (cur >= 2 && hasJourneyConsent()) journeyStep(stepId, Date.now() - stepEnteredAt.current); };
+    window.addEventListener("pagehide", leave);
+    return () => window.removeEventListener("pagehide", leave);
+  }, [cur, stepId]);
 
   const nomeTxt = useMemo(
     () => (ans.nome?.trim() ? ans.nome.trim() : "o teu restaurante"),
@@ -129,6 +139,7 @@ export function FunnelApp({
       const prev = STEPS[cur];
       const next = STEPS[i];
       const dwell = durationMs();
+      if (cur >= 2) journeyStep(prev.id, dwell);
       track("page_dwell", {
         page: "funnel",
         step_id: prev.id,
@@ -175,6 +186,7 @@ export function FunnelApp({
   useEffect(() => {
     if (viewedSteps.current.has(cur)) return;
     viewedSteps.current.add(cur);
+    if (stepId === "restaurant_name") journeyMilestone("name_step_seen_at");
     track("step_view", {
       page: "funnel",
       step_id: stepId,
@@ -243,6 +255,7 @@ export function FunnelApp({
       action: "select",
       value: val,
     });
+    journeyAnswer(stepId, key, val);
     void saveAnswers([{ question_key: key, answer: val, step_id: stepId }]);
     completeCurrent({ element_name: `answer_${key}`, value: val });
     setTimeout(() => go(cur + 1), 320);
@@ -258,6 +271,7 @@ export function FunnelApp({
       action: "select",
       value: val,
     });
+    journeyAnswer(stepId, `quiz_${stepId}`, val);
     void saveAnswers([
       { question_key: `quiz_${stepId}`, answer: val, step_id: stepId },
     ]);
@@ -269,6 +283,8 @@ export function FunnelApp({
       setInputError(true);
       return;
     }
+    if (key === "nome" && journeyConsent) enableJourneyCapture();
+    journeyAnswer(stepId, key, v);
     setAns((a) => ({ ...a, [key]: v }));
     track("button_click", {
       page: "funnel",
@@ -292,7 +308,7 @@ export function FunnelApp({
       const result = await startSession({
         restaurant_name: restaurant,
         phone,
-        consent_analytics: true,
+        consent_analytics: hasJourneyConsent(),
         consent_contact: true,
         attribution: readClientAttribution(),
       });
@@ -349,7 +365,8 @@ export function FunnelApp({
       answer: nextAns[f.key],
       step_id: stepId,
     }));
-    void saveAnswers(answers);
+    answers.forEach((a) => journeyAnswer(stepId, a.question_key, a.answer));
+    void saveAnswers([...Object.entries(nextAns).filter(([, value]) => value).map(([question_key, answer]) => ({ question_key, answer, step_id: question_key === "nome" ? "restaurant_name" : question_key === "tipo" ? "restaurant_type" : question_key === "local" ? "restaurant_location" : stepId }))]);
 
     track("button_click", {
       page: "funnel",
@@ -398,6 +415,8 @@ export function FunnelApp({
   }
 
   function onPrimaryCta(label: string, elementName: string) {
+    if (stepId === "hero_intro") journeyMilestone("video_continued_at");
+    if (stepId === "hero_how_it_works") journeyMilestone("analysis_clicked_at");
     track("cta_clicked", {
       page: "funnel",
       step_id: stepId,
@@ -628,6 +647,12 @@ export function FunnelApp({
               autoFocus
             />
           </div>
+          {step.key === "nome" && (
+            <label style={{ display: "flex", alignItems: "flex-start", gap: 8, textAlign: "left", fontSize: ".82rem", margin: "0 0 16px" }}>
+              <input type="checkbox" checked={journeyConsent} onChange={(e) => { setJourneyConsent(e.target.checked); if (!e.target.checked) clearJourneyConsent(); }} />
+              <span>Concordo que a Smart Table guarde as minhas respostas e o progresso desta análise, incluindo os contactos que fornecer. É opcional.</span>
+            </label>
+          )}
           <button
             type="button"
             className="btn btn-primary"
@@ -792,6 +817,7 @@ export function FunnelApp({
             className="btn btn-primary"
             data-track="btn_calc_continue"
             onClick={() => {
+              journeyAnswer(stepId, "calc_pct", String(calcPct));
               void saveAnswers([
                 {
                   question_key: "calc_pct",
@@ -905,6 +931,7 @@ export function FunnelApp({
                     placeholder={f.ph}
                     value={contactDraft[f.key] || ""}
                     data-track={`contact_${f.key}`}
+                    onBlur={(e) => journeyAnswer(stepId, f.key, e.target.value)}
                     onChange={(e) =>
                       setContactDraft((d) => ({ ...d, [f.key]: e.target.value }))
                     }

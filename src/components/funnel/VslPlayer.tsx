@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { journeyMilestone } from "@/lib/tracking/journey";
 import { track } from "@/lib/tracking/client";
 import { visualProgress } from "@/lib/video/settings";
 
@@ -115,6 +116,7 @@ export function VslPlayer({
         setPlaying(true);
         if (!playedRef.current) {
           playedRef.current = true;
+          if (stepId === "hero_intro") journeyMilestone("video_played_at");
           track("video_play", {
             page: "funnel",
             step_id: stepId,
