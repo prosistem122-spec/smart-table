@@ -8,6 +8,7 @@ interface Props {
   videoUrl: string | null;
   ctaDelaySeconds: number;
   timelineCurve: number;
+  frameWidth: number;
   stepId: string;
   stepIndex: number;
   ctaLabel: string;
@@ -19,6 +20,7 @@ export function VslPlayer({
   videoUrl,
   ctaDelaySeconds,
   timelineCurve,
+  frameWidth,
   stepId,
   stepIndex,
   ctaLabel,
@@ -133,7 +135,7 @@ export function VslPlayer({
   return (
     <>
       <div className="vsl-wrap">
-        <div className={`vsl${videoUrl ? " has-video" : ""}`}>
+        <div className={`vsl${videoUrl ? " has-video" : ""}`} style={{ width: frameWidth }}>
           {videoUrl ? (
             <video
               ref={videoRef}

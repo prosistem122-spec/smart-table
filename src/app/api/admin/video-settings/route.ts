@@ -33,6 +33,7 @@ function mapRow(
     video_url: string | null;
     cta_delay_seconds: number;
     timeline_curve: number;
+    frame_width?: number;
     headline_html?: string | null;
     updated_at?: string;
   }
@@ -48,6 +49,7 @@ function mapRow(
     video_url: resolveUrl(supabase, row.video_path, row.video_url),
     cta_delay_seconds: row.cta_delay_seconds,
     timeline_curve: Number(row.timeline_curve),
+    frame_width: row.frame_width ?? DEFAULT_VIDEO_SETTINGS[slot].frame_width,
     headline_html: headline,
     updated_at: row.updated_at,
   };
@@ -92,6 +94,7 @@ export async function PUT(req: NextRequest) {
       slot,
       cta_delay_seconds,
       timeline_curve,
+      frame_width,
       video_url,
       clear_video,
       headline_html,
@@ -149,6 +152,7 @@ export async function PUT(req: NextRequest) {
             timeline_curve ??
             existing?.timeline_curve ??
             DEFAULT_VIDEO_SETTINGS[slot].timeline_curve,
+          frame_width: frame_width ?? existing?.frame_width ?? DEFAULT_VIDEO_SETTINGS[slot].frame_width,
           video_path:
             patch.video_path !== undefined
               ? patch.video_path

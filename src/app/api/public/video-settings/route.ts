@@ -26,6 +26,7 @@ function normalizeRow(
     video_url: string | null;
     cta_delay_seconds: number;
     timeline_curve: number;
+    frame_width?: number;
     headline_html?: string | null;
   }
 ): FunnelVideoSettings {
@@ -37,6 +38,7 @@ function normalizeRow(
     video_url: fromStorage || row.video_url,
     cta_delay_seconds: row.cta_delay_seconds,
     timeline_curve: Number(row.timeline_curve),
+    frame_width: row.frame_width ?? DEFAULT_VIDEO_SETTINGS[slot].frame_width,
     headline_html:
       row.headline_html?.trim() || DEFAULT_HEADLINES[slot] || null,
   };
@@ -53,9 +55,7 @@ export async function GET() {
   try {
     const { data, error } = await supabase
       .from("funnel_video_settings")
-      .select(
-        "slot, video_path, video_url, cta_delay_seconds, timeline_curve, headline_html"
-      );
+      .select("*");
 
     if (error) throw error;
 

@@ -12,6 +12,7 @@ export interface FunnelVideoSettings {
   video_url: string | null;
   cta_delay_seconds: number;
   timeline_curve: number;
+  frame_width: number;
   /** HTML do título acima do VSL; null/vazio = texto padrão do funil */
   headline_html: string | null;
   updated_at?: string;
@@ -31,6 +32,7 @@ export const DEFAULT_VIDEO_SETTINGS: Record<VideoSlot, FunnelVideoSettings> = {
     video_url: null,
     cta_delay_seconds: 45,
     timeline_curve: 2.2,
+    frame_width: 280,
     headline_html: DEFAULT_HEADLINES.hero_intro,
   },
   hero_social_proof: {
@@ -39,6 +41,7 @@ export const DEFAULT_VIDEO_SETTINGS: Record<VideoSlot, FunnelVideoSettings> = {
     video_url: null,
     cta_delay_seconds: 30,
     timeline_curve: 2.2,
+    frame_width: 280,
     headline_html: DEFAULT_HEADLINES.hero_social_proof,
   },
 };
