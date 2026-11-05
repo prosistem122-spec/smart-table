@@ -84,6 +84,7 @@ export default function AdminVideoPage() {
         slot,
         cta_delay_seconds: s.cta_delay_seconds,
         timeline_curve: s.timeline_curve,
+        frame_width: s.frame_width,
         headline_html: (s.headlineDraft || "").trim() || null,
       };
       const draft = (s.urlDraft || "").trim();
@@ -211,7 +212,7 @@ export default function AdminVideoPage() {
 
               <div className="video-slot-grid">
                 <div className="video-preview-col">
-                  <div className="video-preview-frame">
+                  <div className="video-preview-frame" style={{ width: `${s.frame_width / 500 * 100}%` }}>
                     {s.video_url ? (
                       <video
                         src={s.video_url}
@@ -293,6 +294,24 @@ export default function AdminVideoPage() {
                     >
                       Podes usar {"<mark>texto</mark>"} para destacar. Guarda
                       para aplicar na página do vídeo.
+                    </p>
+                  </div>
+
+                  <div className="filter-field">
+                    <label htmlFor={`${slot}-frame-width`}>
+                      Tamanho do enquadramento: <strong>{s.frame_width}px</strong>
+                    </label>
+                    <input
+                      id={`${slot}-frame-width`}
+                      type="range"
+                      min={160}
+                      max={500}
+                      step={10}
+                      value={s.frame_width}
+                      onChange={(e) => patchSlot(slot, { frame_width: Number(e.target.value) })}
+                    />
+                    <p className="muted" style={{ margin: "6px 0 0", fontSize: "0.78rem" }}>
+                      Ajusta a largura; a altura acompanha a proporção 9:16. A pré-visualização é reduzida e, em ecrãs pequenos, o vídeo adapta-se ao espaço disponível. Guarda para aplicar.
                     </p>
                   </div>
 

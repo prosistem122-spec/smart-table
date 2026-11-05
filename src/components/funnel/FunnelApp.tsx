@@ -557,6 +557,7 @@ export function FunnelApp({
                 videoUrl={cfg.video_url}
                 ctaDelaySeconds={cfg.cta_delay_seconds}
                 timelineCurve={cfg.timeline_curve}
+                frameWidth={cfg.frame_width}
                 stepId={stepId}
                 stepIndex={cur}
                 ctaLabel={step.cta || ""}
