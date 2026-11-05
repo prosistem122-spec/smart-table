@@ -21,8 +21,10 @@ export async function POST(req: NextRequest) {
     ({ error } = await db.from("tracking_milestones").upsert({ visit_id: item.visit_id, [item.milestone]: now }, { onConflict: "visit_id" }));
   } else if (item.type === "answer") {
     ({ error } = await db.from("tracking_answers").upsert({ visit_id: item.visit_id, question_key: item.question_key, step_id: item.step_id, answer: item.answer, updated_at: now }, { onConflict: "visit_id,question_key" }));
+  } else if (item.type === "step_seen") {
+    ({ error } = await db.from("tracking_steps").upsert({ visit_id: item.visit_id, step_id: item.step_id, duration_ms: 0, duration_recorded: false, updated_at: now }, { onConflict: "visit_id,step_id", ignoreDuplicates: true }));
   } else {
-    ({ error } = await db.from("tracking_steps").upsert({ visit_id: item.visit_id, step_id: item.step_id, duration_ms: item.duration_ms, updated_at: now }, { onConflict: "visit_id,step_id" }));
+    ({ error } = await db.from("tracking_steps").upsert({ visit_id: item.visit_id, step_id: item.step_id, duration_ms: item.duration_ms, duration_recorded: true, updated_at: now }, { onConflict: "visit_id,step_id" }));
   }
   if (error) { console.error(error); return Response.json({ error: "Falha ao registar" }, { status: 500 }); }
   return Response.json({ ok: true });

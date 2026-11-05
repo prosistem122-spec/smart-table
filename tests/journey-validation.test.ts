@@ -19,3 +19,12 @@ describe("rastreamento do percurso", () => {
     expect(journeySchema.safeParse({ type: "step", visit_id, step_id: "invalid", duration_ms: -1, consent: true }).success).toBe(false);
   });
 });
+
+describe("visualização de etapas", () => {
+  it("exige autorização e uma etapa válida", () => {
+    const seen = { type: "step_seen", visit_id, step_id: "restaurant_type" };
+    expect(journeySchema.safeParse(seen).success).toBe(false);
+    expect(journeySchema.safeParse({ ...seen, consent: true }).success).toBe(true);
+    expect(journeySchema.safeParse({ ...seen, step_id: "desconhecido", consent: true }).success).toBe(false);
+  });
+});

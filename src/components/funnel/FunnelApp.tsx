@@ -16,7 +16,7 @@ import {
   startSession,
   getTrackingContext,
 } from "@/lib/tracking/client";
-import { clearJourneyConsent, enableJourneyCapture, hasJourneyConsent, journeyAnswer, journeyMilestone, journeyStep } from "@/lib/tracking/journey";
+import { clearJourneyConsent, enableJourneyCapture, hasJourneyConsent, journeyAnswer, journeyMilestone, journeyStep, journeyStepSeen } from "@/lib/tracking/journey";
 import { readClientAttribution } from "@/lib/attribution";
 import {
   DEFAULT_HEADLINES,
@@ -56,7 +56,7 @@ export function FunnelApp({
   const [calcPct, setCalcPct] = useState(15);
   const [inputValue, setInputValue] = useState("");
   const [inputError, setInputError] = useState(false);
-  const [journeyConsent, setJourneyConsent] = useState(false);
+  const [journeyConsent, setJourneyConsent] = useState(true);
   const [contactDraft, setContactDraft] = useState<Answers>({});
   const [contactErrors, setContactErrors] = useState<Record<string, boolean>>({});
   const [counter, setCounter] = useState(0);
@@ -182,6 +182,10 @@ export function FunnelApp({
     },
     [ans, cur, seedPhone]
   );
+
+  useEffect(() => {
+    if (cur >= 2) journeyStepSeen(stepId);
+  }, [cur, stepId]);
 
   useEffect(() => {
     if (viewedSteps.current.has(cur)) return;
