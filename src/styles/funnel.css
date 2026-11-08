@@ -107,7 +107,7 @@ input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;bac
   background:repeating-linear-gradient(115deg,#0B0D18,#0B0D18 10px,#141A33 10px,#141A33 20px);
   display:flex;align-items:center;justify-content:center;}
 .vsl.has-video{background:#0B0D18;}
-.vsl-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;}
+.vsl-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;border:0;}
 .vsl-empty{position:absolute;inset:0;}
 .vsl-play{position:relative;z-index:2;width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.12);
   display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.05rem;border:1.5px solid rgba(255,255,255,.35);

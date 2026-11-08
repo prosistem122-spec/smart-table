@@ -1,6 +1,8 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
+import { resolveVideoSource, type VideoSourceMode } from "@/lib/video/source";
+import { ExternalVideoPlayer } from "@/components/funnel/ExternalVideoPlayer";
 import {
   DEFAULT_HEADLINES,
   DEFAULT_VIDEO_SETTINGS,
@@ -85,10 +87,12 @@ export default function AdminVideoPage() {
         cta_delay_seconds: s.cta_delay_seconds,
         timeline_curve: s.timeline_curve,
         frame_width: s.frame_width,
+        video_source_mode: s.video_path ? "auto" : s.video_source_mode,
         headline_html: (s.headlineDraft || "").trim() || null,
       };
       const draft = (s.urlDraft || "").trim();
       if (draft && !s.video_path) {
+        if (!resolveVideoSource(draft, s.video_source_mode)) throw new Error("Introduz um link HTTP(S) válido de vídeo ou de incorporação.");
         body.video_url = draft;
       }
       const res = await fetch("/api/admin/video-settings", {
@@ -187,7 +191,7 @@ export default function AdminVideoPage() {
       <p className="admin-lead">
         Carrega o vídeo vertical de cada ecrã VSL, edita o texto acima do vídeo,
         define quando aparece o botão CTA e ajusta a barra de progresso (rápida
-        no início, lenta no fim). O cliente não consegue voltar atrás no vídeo.
+        no início, lenta no fim). Em players externos, os controlos e a barra dependem da plataforma.
       </p>
 
       {loadError && <div className="alert error">{loadError}</div>}
@@ -195,6 +199,7 @@ export default function AdminVideoPage() {
       <div className="video-slots">
         {VIDEO_SLOTS.map((slot) => {
           const s = slots[slot];
+          const preview = resolveVideoSource(s.video_url, s.video_path ? "auto" : s.video_source_mode);
           const previewPts = [0, 0.25, 0.5, 0.75, 1].map((t) => ({
             real: Math.round(t * 100),
             visual: Math.round(visualProgress(t, s.timeline_curve) * 100),
@@ -213,13 +218,10 @@ export default function AdminVideoPage() {
               <div className="video-slot-grid">
                 <div className="video-preview-col">
                   <div className="video-preview-frame" style={{ width: `${s.frame_width / 500 * 100}%` }}>
-                    {s.video_url ? (
-                      <video
-                        src={s.video_url}
-                        controls
-                        playsInline
-                        preload="metadata"
-                      />
+                    {preview?.kind === "direct" ? (
+                      <video src={preview.src} controls playsInline preload="metadata" />
+                    ) : preview ? (
+                      <ExternalVideoPlayer source={preview} title={`Pré-visualização: ${VIDEO_SLOT_LABELS[slot]}`} />
                     ) : (
                       <div className="video-preview-empty">Sem vídeo</div>
                     )}
@@ -254,19 +256,30 @@ export default function AdminVideoPage() {
                 >
                   <div className="filter-field">
                     <label htmlFor={`${slot}-url`}>
-                      Ou cola um URL de vídeo (MP4/WebM)
+                      Ou cola um link de vídeo ou de player (YouTube, Vimeo, Google Drive, MP4…)
                     </label>
                     <input
                       id={`${slot}-url`}
                       className="admin-input"
                       type="url"
-                      placeholder="https://…"
+                      placeholder="https://www.youtube.com/watch?v=…"
                       value={s.urlDraft || ""}
                       disabled={!!s.video_path}
                       onChange={(e) =>
                         patchSlot(slot, { urlDraft: e.target.value })
                       }
                     />
+                    {!s.video_path && <>
+                      <label htmlFor={`${slot}-source-mode`} style={{ marginTop: 10 }}>Tipo de link</label>
+                      <select id={`${slot}-source-mode`} className="admin-input" value={s.video_source_mode ?? "auto"}
+                        onChange={(e) => patchSlot(slot, { video_source_mode: e.target.value as VideoSourceMode })}>
+                        <option value="auto">Automático: YouTube, Vimeo, Google Drive ou ficheiro directo</option>
+                        <option value="embed">Outro player: link de incorporação</option>
+                      </select>
+                      <p className="muted" style={{ margin: "6px 0 0", fontSize: "0.78rem" }}>
+                        Para outras plataformas, usa o URL de incorporação fornecido pelo serviço. Nem todos os sites permitem incorporação; testa após guardar. A pré-visualização mostra o vídeo guardado. Usa HTTPS para evitar bloqueios do navegador. Links do Google Drive exigem acesso público. Em players externos os controlos e o rastreamento dependem do fornecedor; nos outros players incorporados a reprodução não é contabilizada.
+                      </p>
+                    </>}
                     {s.video_path && (
                       <p className="muted" style={{ margin: "6px 0 0", fontSize: "0.78rem" }}>
                         Está a usar um ficheiro enviado. Remove-o para usar URL.
@@ -354,7 +367,7 @@ export default function AdminVideoPage() {
                       }
                     />
                     <p className="muted" style={{ margin: "6px 0 0", fontSize: "0.78rem" }}>
-                      1.0 = linear · valores maiores fazem a barra avançar cedo e
+                      Aplica-se apenas a ficheiros directos, não a players externos. 1.0 = linear · valores maiores fazem a barra avançar cedo e
                       abrandar no fim (vídeo parece mais curto).
                     </p>
                     <div className="curve-preview">

@@ -94,6 +94,7 @@ export async function POST(req: NextRequest) {
         {
           slot,
           video_path: path,
+          video_source_mode: "auto",
           video_url: pub.publicUrl,
           cta_delay_seconds: existing?.cta_delay_seconds ?? 45,
           timeline_curve: existing?.timeline_curve ?? 2.2,
@@ -113,6 +114,7 @@ export async function POST(req: NextRequest) {
       settings: {
         slot: data.slot,
         video_path: data.video_path,
+        video_source_mode: "auto",
         video_url: pub.publicUrl,
         cta_delay_seconds: data.cta_delay_seconds,
         timeline_curve: Number(data.timeline_curve),

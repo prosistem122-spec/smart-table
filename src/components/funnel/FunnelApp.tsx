@@ -578,6 +578,7 @@ export function FunnelApp({
             return (
               <VslPlayer
                 videoUrl={cfg.video_url}
+                sourceMode={cfg.video_source_mode ?? "auto"}
                 ctaDelaySeconds={cfg.cta_delay_seconds}
                 timelineCurve={cfg.timeline_curve}
                 frameWidth={cfg.frame_width}

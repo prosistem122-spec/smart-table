@@ -24,6 +24,7 @@ function normalizeRow(
     slot: string;
     video_path: string | null;
     video_url: string | null;
+    video_source_mode?: "auto" | "embed";
     cta_delay_seconds: number;
     timeline_curve: number;
     frame_width?: number;
@@ -36,6 +37,7 @@ function normalizeRow(
     slot,
     video_path: row.video_path,
     video_url: fromStorage || row.video_url,
+    video_source_mode: row.video_path ? "auto" : row.video_source_mode ?? "auto",
     cta_delay_seconds: row.cta_delay_seconds,
     timeline_curve: Number(row.timeline_curve),
     frame_width: row.frame_width ?? DEFAULT_VIDEO_SETTINGS[slot].frame_width,
