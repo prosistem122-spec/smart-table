@@ -3,10 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import { journeyMilestone } from "@/lib/tracking/journey";
 import { track } from "@/lib/tracking/client";
+import { ExternalVideoPlayer } from "./ExternalVideoPlayer";
+import { resolveVideoSource, type VideoSourceMode } from "@/lib/video/source";
 import { visualProgress } from "@/lib/video/settings";
 
 interface Props {
   videoUrl: string | null;
+  sourceMode: VideoSourceMode;
   ctaDelaySeconds: number;
   timelineCurve: number;
   frameWidth: number;
@@ -19,6 +22,7 @@ interface Props {
 
 export function VslPlayer({
   videoUrl,
+  sourceMode,
   ctaDelaySeconds,
   timelineCurve,
   frameWidth,
@@ -28,6 +32,8 @@ export function VslPlayer({
   ctaTrack,
   onCta,
 }: Props) {
+  const source = resolveVideoSource(videoUrl, sourceMode);
+  const embedded = source && source.kind !== "direct";
   const videoRef = useRef<HTMLVideoElement>(null);
   const maxTimeRef = useRef(0);
   const playedRef = useRef(false);
@@ -46,7 +52,7 @@ export function VslPlayer({
     setBarPct(0);
     setHasEnded(false);
     setCtaVisible(ctaDelaySeconds <= 0);
-  }, [videoUrl, stepId, ctaDelaySeconds]);
+  }, [videoUrl, sourceMode, stepId, ctaDelaySeconds]);
 
   useEffect(() => {
     if (ctaDelaySeconds <= 0) {
@@ -107,6 +113,21 @@ export function VslPlayer({
     }
   }
 
+  function recordPlay() {
+    if (playedRef.current) return;
+    playedRef.current = true;
+    if (stepId === "hero_intro") journeyMilestone("video_played_at");
+    track("video_play", { page: "funnel", step_id: stepId, step_index: stepIndex, element_name: "vsl_player", action: "play" });
+  }
+
+  function recordEnded(durationMs = 0) {
+    setHasEnded(true);
+    setPlaying(false);
+    setBarPct(100);
+    setCtaVisible(true);
+    track("video_ended", { page: "funnel", step_id: stepId, step_index: stepIndex, element_name: "vsl_player", action: "ended", duration_ms: durationMs });
+  }
+
   async function togglePlay() {
     const v = videoRef.current;
     if (!v || !videoUrl) return;
@@ -114,17 +135,7 @@ export function VslPlayer({
       try {
         await v.play();
         setPlaying(true);
-        if (!playedRef.current) {
-          playedRef.current = true;
-          if (stepId === "hero_intro") journeyMilestone("video_played_at");
-          track("video_play", {
-            page: "funnel",
-            step_id: stepId,
-            step_index: stepIndex,
-            element_name: "vsl_player",
-            action: "play",
-          });
-        }
+        recordPlay();
       } catch {
         /* autoplay bloqueado — utilizador pode tentar de novo */
       }
@@ -138,11 +149,13 @@ export function VslPlayer({
     <>
       <div className="vsl-wrap">
         <div className={`vsl${videoUrl ? " has-video" : ""}`} style={{ width: frameWidth }}>
-          {videoUrl ? (
+          {source && embedded ? (
+            <ExternalVideoPlayer source={source} className="vsl-video" title="Vídeo da apresentação" onPlay={recordPlay} onEnded={() => recordEnded()} />
+          ) : source ? (
             <video
               ref={videoRef}
               className="vsl-video"
-              src={videoUrl}
+              src={source.src}
               playsInline
               preload="metadata"
               controls={false}
@@ -153,40 +166,27 @@ export function VslPlayer({
               onSeeked={enforceNoRewind}
               onPlay={() => setPlaying(true)}
               onPause={() => setPlaying(false)}
-              onEnded={() => {
-                setHasEnded(true);
-                setPlaying(false);
-                setBarPct(100);
-                setCtaVisible(true);
-                track("video_ended", {
-                  page: "funnel",
-                  step_id: stepId,
-                  step_index: stepIndex,
-                  element_name: "vsl_player",
-                  action: "ended",
-                  duration_ms: Math.round((videoRef.current?.duration || 0) * 1000),
-                });
-              }}
+              onEnded={() => recordEnded(Math.round((videoRef.current?.duration || 0) * 1000))}
               onContextMenu={(e) => e.preventDefault()}
             />
           ) : (
             <div className="vsl-empty" aria-hidden />
           )}
 
-          {!playing && !hasEnded && (
+          {!embedded && !playing && !hasEnded && (
             <button
               type="button"
               className="vsl-play"
               aria-label="Reproduzir vídeo"
               data-track="vsl_play"
               onClick={() => void togglePlay()}
-              disabled={!videoUrl}
+              disabled={!source}
             >
               ▶
             </button>
           )}
 
-          {playing && (
+          {!embedded && playing && (
             <button
               type="button"
               className="vsl-tap"
@@ -195,9 +195,9 @@ export function VslPlayer({
             />
           )}
 
-          <div className="vsl-scrub" aria-hidden>
+          {!embedded && <div className="vsl-scrub" aria-hidden>
             <div style={{ width: `${barPct}%` }} />
-          </div>
+          </div>}
         </div>
       </div>
 

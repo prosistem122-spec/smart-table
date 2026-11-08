@@ -1,3 +1,5 @@
+import type { VideoSourceMode } from "./source";
+
 export const VIDEO_SLOTS = ["hero_intro", "hero_social_proof"] as const;
 export type VideoSlot = (typeof VIDEO_SLOTS)[number];
 
@@ -10,6 +12,7 @@ export interface FunnelVideoSettings {
   slot: VideoSlot;
   video_path: string | null;
   video_url: string | null;
+  video_source_mode: VideoSourceMode;
   cta_delay_seconds: number;
   timeline_curve: number;
   frame_width: number;
@@ -30,6 +33,7 @@ export const DEFAULT_VIDEO_SETTINGS: Record<VideoSlot, FunnelVideoSettings> = {
     slot: "hero_intro",
     video_path: null,
     video_url: null,
+    video_source_mode: "auto",
     cta_delay_seconds: 45,
     timeline_curve: 2.2,
     frame_width: 280,
@@ -39,6 +43,7 @@ export const DEFAULT_VIDEO_SETTINGS: Record<VideoSlot, FunnelVideoSettings> = {
     slot: "hero_social_proof",
     video_path: null,
     video_url: null,
+    video_source_mode: "auto",
     cta_delay_seconds: 30,
     timeline_curve: 2.2,
     frame_width: 280,

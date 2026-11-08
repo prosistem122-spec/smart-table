@@ -1,3 +1,4 @@
+import { resolveVideoSource } from "@/lib/video/source";
 import { z } from "zod";
 
 const EVENT_NAMES = [
@@ -121,7 +122,8 @@ export const videoSettingsUpdateSchema = z.object({
   cta_delay_seconds: z.number().int().min(0).max(3600).optional(),
   timeline_curve: z.number().min(1).max(5).optional(),
   frame_width: z.number().int().min(160).max(500).optional(),
-  video_url: z.string().url().max(2000).nullable().optional(),
+  video_url: z.string().trim().url().max(2000).refine((url) => !!resolveVideoSource(url), "Use um link HTTP(S) válido para vídeo.").nullable().optional(),
+  video_source_mode: z.enum(["auto", "embed"]).optional(),
   clear_video: z.boolean().optional(),
   headline_html: z.string().trim().max(800).nullable().optional(),
 });
