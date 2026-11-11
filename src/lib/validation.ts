@@ -36,6 +36,7 @@ const metadataSchema = z
 
 export const sessionStartSchema = z.object({
   restaurant_name: z.string().trim().min(2).max(120),
+  submission_id: z.string().uuid().optional(),
   phone: z.string().trim().min(6).max(40),
   consent_analytics: z.boolean(),
   consent_contact: z.boolean(),

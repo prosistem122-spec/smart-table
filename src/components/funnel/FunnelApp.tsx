@@ -10,9 +10,15 @@ import {
   fmtN,
 } from "./steps";
 import { VslPlayer } from "./VslPlayer";
+import { v4 as uuidv4 } from "uuid";
+import { readFunnelProgress, writeFunnelProgress, type FunnelProgress } from "@/lib/funnel-progress";
+import { trackConfirmedLead } from "@/lib/tracking/meta-pixel";
+import { normalizePhone } from "@/lib/phone";
 import {
   track,
   saveAnswers,
+  saveAnswersConfirmed,
+  completeSubmission,
   startSession,
   getTrackingContext,
 } from "@/lib/tracking/client";
@@ -40,25 +46,58 @@ function slotForStep(stepId: string): VideoSlot | null {
   return null;
 }
 
-export function FunnelApp({
-  seedRestaurantName = "",
+export function FunnelApp(props: Props) {
+  const [initial, setInitial] = useState<FunnelProgress | null>(null);
+  useEffect(() => {
+    let seed: { restaurant?: string; phone?: string; contactName?: string } = {};
+    try {
+      const raw = sessionStorage.getItem("st_landing_seed");
+      if (raw) {
+        const value = JSON.parse(raw);
+        seed = {
+          restaurant: typeof value.restaurant === "string" ? value.restaurant.slice(0, 120) : undefined,
+          phone: typeof value.phone === "string" ? value.phone.slice(0, 40) : undefined,
+          contactName: typeof value.contactName === "string" ? value.contactName.slice(0, 120) : undefined,
+        };
+      }
+    } catch { /* Pode continuar sem dados pré-preenchidos. */ }
+    const restaurant = seed.restaurant || props.seedRestaurantName;
+    const phone = seed.phone || props.seedPhone;
+    setInitial(readFunnelProgress() || {
+      version: 1, cur: 0,
+      ans: { ...(restaurant ? { nome: restaurant } : {}), ...(phone ? { whatsapp: phone, telefone: phone } : {}), ...(seed.contactName ? { resp_nome: seed.contactName } : {}) },
+      quizSel: {}, contactDraft: {}, inputValue: "", contactExpanded: false,
+      calcPct: 15, journeyConsent: true, captureEnabled: false,
+      partialSubmissionId: uuidv4(), partialPhone: null, finalSubmissionId: uuidv4(), completed: false,
+    });
+  }, [props.seedRestaurantName, props.seedPhone]);
+  if (!initial) return <p className="note">A carregar o teu progresso…</p>;
+  return <FunnelContent {...props} initial={initial} />;
+}
+
+function FunnelContent({
   seedPhone = "",
   whatsappNumber,
-}: Props) {
-  const [cur, setCur] = useState(0);
-  const [ans, setAns] = useState<Answers>(() => ({
-    ...(seedRestaurantName ? { nome: seedRestaurantName } : {}),
-    ...(seedPhone ? { whatsapp: seedPhone, telefone: seedPhone } : {}),
-  }));
-  const [quizSel, setQuizSel] = useState<Record<number, string>>({});
-  const [contactExpanded, setContactExpanded] = useState(false);
+  initial,
+}: Props & { initial: FunnelProgress }) {
+  const [cur, setCur] = useState(initial.completed ? STEPS.length - 1 : initial.cur);
+  const [ans, setAns] = useState<Answers>(initial.ans);
+  const [quizSel, setQuizSel] = useState<Record<number, string>>(initial.quizSel);
+  const [contactExpanded, setContactExpanded] = useState(initial.contactExpanded);
   const [resultPhase, setResultPhase] = useState<1 | 2>(1);
-  const [calcPct, setCalcPct] = useState(15);
-  const [inputValue, setInputValue] = useState("");
+  const [calcPct, setCalcPct] = useState(initial.calcPct);
+  const [inputValue, setInputValue] = useState(initial.inputValue);
   const [inputError, setInputError] = useState(false);
-  const [journeyConsent, setJourneyConsent] = useState(true);
-  const [contactDraft, setContactDraft] = useState<Answers>({});
+  const [journeyConsent, setJourneyConsent] = useState(initial.journeyConsent);
+  const [contactDraft, setContactDraft] = useState<Answers>(initial.contactDraft);
   const [contactErrors, setContactErrors] = useState<Record<string, boolean>>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [completed, setCompleted] = useState(initial.completed);
+  const submittingRef = useRef(false);
+  const partialId = useRef(initial.partialSubmissionId);
+  const partialPhone = useRef(initial.partialPhone);
+  const finalId = useRef(initial.finalSubmissionId);
   const [counter, setCounter] = useState(0);
   const [videoBySlot, setVideoBySlot] = useState<
     Record<VideoSlot, FunnelVideoSettings>
@@ -67,7 +106,19 @@ export function FunnelApp({
   const viewedSteps = useRef(new Set<number>());
   const calcTracked = useRef(false);
 
-  useEffect(() => { clearJourneyConsent(); }, []);
+  useEffect(() => {
+    if (initial.captureEnabled) enableJourneyCapture(); else clearJourneyConsent();
+  }, [initial.captureEnabled]);
+
+  useEffect(() => {
+    writeFunnelProgress({ version: 1, cur, ans, quizSel, contactDraft, inputValue, contactExpanded, calcPct, journeyConsent,
+      captureEnabled: hasJourneyConsent(), partialSubmissionId: partialId.current, partialPhone: partialPhone.current, finalSubmissionId: finalId.current, completed });
+  }, [cur, ans, quizSel, contactDraft, inputValue, contactExpanded, calcPct, journeyConsent, completed]);
+
+  function snapshot(overrides: Partial<FunnelProgress> = {}): FunnelProgress {
+    return { version: 1, cur, ans, quizSel, contactDraft, inputValue, contactExpanded, calcPct, journeyConsent,
+      captureEnabled: hasJourneyConsent(), partialSubmissionId: partialId.current, partialPhone: partialPhone.current, finalSubmissionId: finalId.current, completed, ...overrides };
+  }
 
   const step = STEPS[cur];
   const stepId = step.id;
@@ -169,12 +220,12 @@ export function FunnelApp({
       if (next.type === "contact") {
         setContactDraft((d) => ({
           ...d,
-          resp_nome: ans.resp_nome || d.resp_nome || "",
-          whatsapp: ans.whatsapp || d.whatsapp || seedPhone || "",
-          telefone: ans.telefone || d.telefone || "",
-          cargo: ans.cargo || d.cargo || "",
-          email: ans.email || d.email || "",
-          contactoEmpresa: ans.contactoEmpresa || d.contactoEmpresa || "",
+          resp_nome: d.resp_nome ?? ans.resp_nome ?? "",
+          whatsapp: d.whatsapp ?? ans.whatsapp ?? seedPhone ?? "",
+          telefone: d.telefone ?? ans.telefone ?? "",
+          cargo: d.cargo ?? ans.cargo ?? "",
+          email: d.email ?? ans.email ?? "",
+          contactoEmpresa: d.contactoEmpresa ?? ans.contactoEmpresa ?? "",
         }));
       }
       stepEnteredAt.current = Date.now();
@@ -244,8 +295,8 @@ export function FunnelApp({
     return () => cancelAnimationFrame(raf);
   }, [step.type, resultPhase, cur, stepId]);
 
-  function waLink() {
-    const t = `Olá! Vim do funil da Smart Table.\nRestaurante: ${ans.nome || "-"}\nTipo: ${ans.tipo || "-"}\nLocalização: ${ans.local || "-"}\nContacto do restaurante: ${ans.contactoEmpresa || "-"}\nFaturação mensal: ${ans.faturacao || "-"}\nMesas: ${ans.mesas || "-"}\nObjetivo: ${ans.solucao || "-"}\nContacto: ${ans.resp_nome || "-"} (${ans.cargo || "-"})\nWhatsApp: ${ans.whatsapp || "-"}\nTelefone: ${ans.telefone || "-"}`;
+  function waLink(values: Answers = ans) {
+    const t = `Olá! Vim do funil da Smart Table.\nRestaurante: ${values.nome || "-"}\nTipo: ${values.tipo || "-"}\nLocalização: ${values.local || "-"}\nContacto do restaurante: ${values.contactoEmpresa || "-"}\nFaturação mensal: ${values.faturacao || "-"}\nMesas: ${values.mesas || "-"}\nObjetivo: ${values.solucao || "-"}\nContacto: ${values.resp_nome || "-"} (${values.cargo || "-"})\nWhatsApp: ${values.whatsapp || "-"}\nTelefone: ${values.telefone || "-"}`;
     return `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(t)}`;
   }
 
@@ -303,118 +354,94 @@ export function FunnelApp({
   }
 
   async function ensureLeadSession(nextAns: Answers) {
-    if (getTrackingContext()) return;
     const phone = (nextAns.whatsapp || nextAns.telefone || "").trim();
-    const restaurant =
-      (nextAns.nome || ans.nome || "").trim() || "Restaurante";
-    if (!phone) return;
-    try {
-      const result = await startSession({
-        restaurant_name: restaurant,
-        phone,
-        consent_analytics: hasJourneyConsent(),
-        consent_contact: true,
-        attribution: readClientAttribution(),
-      });
-      track("lead_form_submitted", {
-        page: "funnel",
-        step_id: stepId,
-        step_index: cur,
-        element_name: "contact_capture",
-        action: "submit",
-        value: restaurant,
-      });
-      if (result.resumed) {
-        track("session_resumed", {
-          page: "funnel",
-          step_id: stepId,
-          element_name: "session",
-          action: "resume",
-        });
-      }
-      track("funnel_started", {
-        page: "funnel",
-        step_id: "hero_intro",
-        step_index: 0,
-        element_name: "funnel",
-        action: "start",
-      });
-    } catch {
-      /* funil continua localmente se a API falhar */
+    const normalized = normalizePhone(phone);
+    if (!normalized.ok || !normalized.e164) throw new Error(normalized.error || "Telefone inválido.");
+    if (partialPhone.current && partialPhone.current !== normalized.e164) partialId.current = uuidv4();
+    partialPhone.current = normalized.e164;
+    if (!writeFunnelProgress(snapshot({ ans: nextAns }))) throw new Error("Não foi possível guardar o progresso neste navegador. Activa o armazenamento da sessão e tenta novamente.");
+    const existing = getTrackingContext();
+    if (existing?.sessionId === partialId.current && existing.phoneNormalized === normalized.e164) return;
+    const restaurant = (nextAns.nome || "").trim();
+    const result = await startSession({
+      restaurant_name: restaurant, phone, consent_analytics: hasJourneyConsent(), consent_contact: true,
+      attribution: readClientAttribution(), submission_id: partialId.current,
+    });
+    if (!result.alreadyStarted) {
+      track("lead_form_submitted", { page: "funnel", step_id: stepId, step_index: cur, element_name: "contact_capture", action: "submit", value: restaurant });
+      if (result.resumed) track("session_resumed", { page: "funnel", step_id: stepId, element_name: "session", action: "resume" });
+      track("funnel_started", { page: "funnel", step_id: "hero_intro", step_index: 0, element_name: "funnel", action: "start" });
     }
   }
 
   async function submitContact(final: boolean) {
+    if (submittingRef.current || completed) return;
     const nextAns = { ...ans };
     const errs: Record<string, boolean> = {};
-    let ok = true;
     CONTACT_FIELDS.forEach((f) => {
       const v = (contactDraft[f.key] || "").trim();
       nextAns[f.key] = v;
-      const isOptional = final ? f.key === "contactoEmpresa" : !!f.optional;
-      if (!isOptional && !v) {
-        errs[f.key] = true;
-        ok = false;
-      }
+      const optional = final ? f.key === "contactoEmpresa" : !!f.optional;
+      if (!optional && !v) errs[f.key] = true;
     });
     setContactErrors(errs);
-    if (!ok) return;
-    if (!nextAns.telefone && nextAns.whatsapp) nextAns.telefone = nextAns.whatsapp;
-    setAns(nextAns);
-
-    await ensureLeadSession(nextAns);
-
-    const answers = CONTACT_FIELDS.filter((f) => nextAns[f.key]).map((f) => ({
-      question_key: f.key,
-      answer: nextAns[f.key],
-      step_id: stepId,
-    }));
-    answers.forEach((a) => journeyAnswer(stepId, a.question_key, a.answer));
-    void saveAnswers([...Object.entries(nextAns).filter(([, value]) => value).map(([question_key, answer]) => ({ question_key, answer, step_id: question_key === "nome" ? "restaurant_name" : question_key === "tipo" ? "restaurant_type" : question_key === "local" ? "restaurant_location" : stepId }))]);
-
-    track("button_click", {
-      page: "funnel",
-      step_id: stepId,
-      element_name: final ? "cta_final_contact" : "btn_contact_continue",
-      action: "submit_contact",
-    });
-
-    if (final) {
-      track("contact_requested", {
-        page: "funnel",
-        step_id: stepId,
-        element_name: "cta_final_contact",
-        action: "contact_requested",
-      });
-      track("funnel_completed", {
-        page: "funnel",
-        step_id: stepId,
-        step_index: cur,
-        element_name: "funnel",
-        action: "complete",
-      });
-      track("cta_clicked", {
-        page: "funnel",
-        step_id: stepId,
-        element_name: "cta_final_contact",
-        action: "cta",
-      });
+    if (Object.keys(errs).length) return;
+    if (!normalizePhone(nextAns.whatsapp).ok || (nextAns.telefone && !normalizePhone(nextAns.telefone).ok)) {
+      setSubmitError("Indica um número de telefone ou WhatsApp válido."); return;
     }
-
-    completeCurrent({
-      element_name: final ? "cta_final_contact" : "btn_contact_continue",
-    });
-    go(cur + 1);
-    if (final) {
-      setTimeout(() => {
-        track("whatsapp_click", {
-          page: "funnel",
-          step_id: "thanks_whatsapp",
-          element_name: "cta_whatsapp_auto",
-          action: "open",
-        });
-        window.open(waLink(), "_blank");
-      }, 250);
+    if (nextAns.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextAns.email)) {
+      setSubmitError("Indica um email válido."); return;
+    }
+    if (!nextAns.telefone && nextAns.whatsapp) nextAns.telefone = nextAns.whatsapp;
+    submittingRef.current = true;
+    setSubmitting(true);
+    setSubmitError(null);
+    setAns(nextAns);
+    try {
+      await ensureLeadSession(nextAns);
+      const answerRows = Object.entries(nextAns).filter(([, value]) => value.trim()).map(([question_key, answer]) => ({
+        question_key, answer: answer.trim(),
+        step_id: STEPS.find((s) => s.key === question_key)?.id || stepId,
+      }));
+      for (const [index, value] of Object.entries(quizSel)) {
+        const quizStep = STEPS[Number(index)];
+        if (quizStep?.type === "quiz" && value) answerRows.push({ question_key: `quiz_${quizStep.id}`, answer: value, step_id: quizStep.id });
+      }
+      if (cur > STEPS.findIndex((s) => s.id === "calc_ticket")) {
+        answerRows.push({ question_key: "calc_pct", answer: String(calcPct), step_id: "calc_ticket" });
+      }
+      let newlyCompleted = false;
+      if (final) {
+        if (!writeFunnelProgress(snapshot({ ans: nextAns }))) throw new Error("Não foi possível guardar o progresso neste navegador. Activa o armazenamento da sessão e tenta novamente.");
+        const result = await completeSubmission(finalId.current, answerRows);
+        newlyCompleted = !result.alreadyCompleted;
+        // Persiste o sucesso antes de emitir o evento, para que um refresh nunca volte a enviá-lo.
+        writeFunnelProgress(snapshot({ ans: nextAns, cur: STEPS.length - 1, completed: true }));
+        setCompleted(true);
+        if (newlyCompleted) trackConfirmedLead(finalId.current);
+      } else {
+        await saveAnswersConfirmed(answerRows);
+      }
+      CONTACT_FIELDS.filter((f) => nextAns[f.key]).forEach((f) => journeyAnswer(stepId, f.key, nextAns[f.key]));
+      track("button_click", { page: "funnel", step_id: stepId, element_name: final ? "cta_final_contact" : "btn_contact_continue", action: "submit_contact" });
+      if (final && newlyCompleted) {
+        track("contact_requested", { page: "funnel", step_id: stepId, element_name: "cta_final_contact", action: "contact_requested" });
+        track("funnel_completed", { page: "funnel", step_id: stepId, step_index: cur, element_name: "funnel", action: "complete" });
+        track("cta_clicked", { page: "funnel", step_id: stepId, element_name: "cta_final_contact", action: "cta" });
+      }
+      completeCurrent({ element_name: final ? "cta_final_contact" : "btn_contact_continue" });
+      go(cur + 1);
+      if (final && newlyCompleted) {
+        setTimeout(() => {
+          track("whatsapp_click", { page: "funnel", step_id: "thanks_whatsapp", element_name: "cta_whatsapp_auto", action: "open" });
+          window.open(waLink(nextAns), "_blank", "noopener,noreferrer");
+        }, 250);
+      }
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "Não foi possível guardar os dados. Tenta novamente.");
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
     }
   }
 
@@ -543,9 +570,9 @@ export function FunnelApp({
       DEFAULT_HEADLINES[videoSlot] ||
       step.title ||
       "");
-  const titleHtml = fill(
-    step.video ? videoHeadline || step.title || "" : step.title || ""
-  );
+  // O título pode conter HTML do administrador, mas o nome digitado pelo visitante não é HTML.
+  const safeName = nomeTxt.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]!);
+  const titleHtml = (step.video ? videoHeadline || step.title || "" : step.title || "").replace(/\{nome\}/g, safeName);
   const labelHtml = step.label ? fill(step.label) : "";
 
   return (
@@ -556,6 +583,7 @@ export function FunnelApp({
           type="button"
           className="btn-ghost"
           data-track="btn_step_back"
+          disabled={submitting}
           onClick={() => go(cur - 1)}
         >
           ← Voltar
@@ -635,10 +663,12 @@ export function FunnelApp({
           <div className="field">
             <input
               type={step.itype || "text"}
+              maxLength={step.key === "nome" ? 120 : 500}
               placeholder={step.ph}
               value={inputValue}
               onChange={(e) => {
                 setInputValue(e.target.value);
+                setAns((a) => ({ ...a, [step.key!]: e.target.value }));
                 setInputError(false);
               }}
               onKeyDown={(e) => {
@@ -915,7 +945,7 @@ export function FunnelApp({
               ? f.key === "contactoEmpresa"
               : !!f.optional;
             if (!isOpt) return true;
-            return step.final || contactExpanded || !!ans[f.key];
+            return step.final || contactExpanded || !!ans[f.key] || !!contactDraft[f.key];
           }).map((f) => {
             const isOpt = step.final
               ? f.key === "contactoEmpresa"
@@ -933,8 +963,10 @@ export function FunnelApp({
                 <div className="field-wrap">
                   <input
                     type={f.itype}
+                    maxLength={f.itype === "tel" ? 40 : f.itype === "email" ? 254 : 500}
                     placeholder={f.ph}
                     value={contactDraft[f.key] || ""}
+                    disabled={submitting}
                     data-track={`contact_${f.key}`}
                     onBlur={(e) => journeyAnswer(stepId, f.key, e.target.value)}
                     onChange={(e) =>
@@ -951,23 +983,26 @@ export function FunnelApp({
           })}
           {!step.final &&
             !contactExpanded &&
-            !CONTACT_FIELDS.some((f) => f.optional && ans[f.key]) && (
+            !CONTACT_FIELDS.some((f) => f.optional && (ans[f.key] || contactDraft[f.key])) && (
               <button
                 type="button"
                 className="addmore"
                 data-track="btn_add_contact_details"
+                disabled={submitting}
                 onClick={() => setContactExpanded(true)}
               >
                 + Adicionar mais detalhes (opcional)
               </button>
             )}
+          {submitError && <p className="note" role="alert" style={{ color: "#C2492E" }}>{submitError}</p>}
           <button
             type="button"
             className="btn btn-primary"
+            disabled={submitting}
             data-track={step.final ? "cta_final_contact" : "btn_contact_continue"}
             onClick={() => void submitContact(!!step.final)}
           >
-            {step.cta || "Continuar"}
+            {submitting ? "A guardar…" : step.cta || "Continuar"}
           </button>
           {step.final && (
             <p className="note">
