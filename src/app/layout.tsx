@@ -1,6 +1,10 @@
+/* eslint-disable @next/next/no-img-element -- O pixel noscript exige uma imagem de rastreamento simples. */
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
+import { MetaPixelNavigation } from "@/components/MetaPixelNavigation";
+import { Suspense } from "react";
+import { META_PIXEL_BASE } from "@/lib/tracking/meta-pixel-base";
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -23,7 +27,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-MZ" className={plusJakarta.variable}>
-      <body className={plusJakarta.className}>{children}</body>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: META_PIXEL_BASE }} />
+        <noscript><img height="1" width="1" style={{ display: "none" }} src="https://www.facebook.com/tr?id=1115803051092289&ev=PageView&noscript=1" alt="" /></noscript>
+      </head>
+      <body className={plusJakarta.className}><Suspense fallback={null}><MetaPixelNavigation /></Suspense>{children}</body>
     </html>
   );
 }

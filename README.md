@@ -119,7 +119,7 @@ Agendar via cron / Supabase scheduled function conforme a vossa política.
 
 ## Fluxo público
 
-1. Landing (`/`) → CTAs para `/analise` (vídeo VSL).
+1. Landing (`/`) → CTAs para a secção de contacto → formulário abre `/analise` (vídeo VSL).
 2. Após o vídeo: nome do restaurante e, mais à frente, contacto (cria lead/sessão).
 3. Instrumentação de eventos + visitas anónimas (landing/vídeo) no admin.
 
@@ -134,3 +134,9 @@ Agendar via cron / Supabase scheduled function conforme a vossa política.
 ## Testes
 
 Ver secção “Resultados dos testes” após execução local com `npm test` / `npm run test:e2e`.
+
+## Progresso e Meta Pixel
+
+- O botão de acesso na landing conduz à secção de contacto; a submissão do formulário dessa secção abre a análise. Os dados iniciais e o progresso do funil ficam em `sessionStorage` da aba (incluindo dados de contacto) e desaparecem quando a sessão do navegador é encerrada. O acesso ao armazenamento da sessão é necessário para submeter com segurança. O formulário da landing não inclui os dados de contacto no URL de redirecionamento.
+- Aplicar todas as migrações, incluindo `009_idempotent_funnel_submission.sql`, antes de publicar. A confirmação final guarda as respostas e o estado de conclusão numa transacção idempotente. O evento Meta `Lead` é enviado apenas após a confirmação de uma nova submissão, com o identificador dessa submissão como `eventID`; uma resposta repetida não emite outro Lead. Se a confirmação se perder na rede, a tentativa com a mesma chave não volta a gravar a submissão; nesse caso o evento pode não ser enviado, evitando duplicação.
+- O Pixel `1115803051092289` é inicializado uma vez no layout. A landing e `/analise` enviam um PageView por carregamento e por navegação de rota; as etapas internas não são novas páginas. Não foram encontradas outras instalações do Pixel ou de gestor de tags no código do repositório. Confirmar também se existem integrações ou tags externas no ambiente de produção, e rever os requisitos de consentimento antes de activar o Pixel.

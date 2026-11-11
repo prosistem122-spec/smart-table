@@ -189,7 +189,8 @@ export async function startSession(input: {
   consent_analytics: boolean;
   consent_contact: boolean;
   attribution?: Attribution;
-}): Promise<{ leadId: string; sessionId: string; resumed: boolean }> {
+  submission_id?: string;
+}): Promise<{ leadId: string; sessionId: string; resumed: boolean; alreadyStarted: boolean }> {
   const existing = loadCtx();
   const visitId = getVisitId() || getOrCreateVisitId();
   const res = await fetch("/api/public/session", {
@@ -214,8 +215,12 @@ export async function startSession(input: {
     session_id: string;
     resumed: boolean;
     phone_normalized: string;
+    already_started?: boolean;
   };
 
+  if (!data.lead_id || !data.session_id || !data.phone_normalized || (input.submission_id && data.session_id !== input.submission_id)) {
+    throw new Error("Resposta inválida ao iniciar sessão.");
+  }
   setTrackingContext({
     leadId: data.lead_id,
     sessionId: data.session_id,
@@ -229,6 +234,7 @@ export async function startSession(input: {
     leadId: data.lead_id,
     sessionId: data.session_id,
     resumed: data.resumed,
+    alreadyStarted: data.already_started === true,
   };
 }
 
@@ -251,6 +257,30 @@ export async function saveAnswers(
   } catch {
     /* não bloquear funil */
   }
+}
+
+/** Versão confirmada usada antes de avançar numa etapa de contacto. */
+export async function saveAnswersConfirmed(answers: { question_key: string; answer: string; step_id?: string }[]) {
+  const ctx = loadCtx();
+  if (!ctx?.leadId || !ctx.sessionId) throw new Error("Sessão de contacto indisponível.");
+  const res = await fetch("/api/public/answers", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ lead_id: ctx.leadId, session_id: ctx.sessionId, answers }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok || body.ok !== true) throw new Error("Não foi possível guardar os dados. Tenta novamente.");
+}
+
+export async function completeSubmission(submissionId: string, answers: { question_key: string; answer: string; step_id?: string }[]): Promise<{ alreadyCompleted: boolean }> {
+  const ctx = loadCtx();
+  if (!ctx?.leadId || !ctx.sessionId) throw new Error("Sessão de contacto indisponível.");
+  const res = await fetch("/api/public/complete", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ submission_id: submissionId, lead_id: ctx.leadId, session_id: ctx.sessionId, answers }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok || body.ok !== true || typeof body.already_completed !== "boolean") throw new Error(body.error || "Não foi possível guardar os dados. Tenta novamente.");
+  return { alreadyCompleted: body.already_completed };
 }
 
 export function startInactivityWatcher(inactiveAfterMs = 15 * 60 * 1000) {

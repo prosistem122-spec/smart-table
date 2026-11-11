@@ -48,14 +48,14 @@ export function SalesPageClient({ html, whatsappNumber }: Props) {
           page: "sales",
           element_name: element,
           action: "start_free",
-          next_page: "/analise",
+          next_page: element === "form_comecar_gratis" ? "/analise" : "#acesso",
           metadata: { visit_id: visitId },
         });
         track("button_click", {
           page: "sales",
           element_name: element,
-          action: "navigate_analise",
-          next_page: "/analise",
+          action: element === "form_comecar_gratis" ? "navigate_analise" : "scroll_contact",
+          next_page: element === "form_comecar_gratis" ? "/analise" : "#acesso",
           metadata: { visit_id: visitId },
         });
       },

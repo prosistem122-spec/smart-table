@@ -57,6 +57,25 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "Supabase indisponível" }, { status: 503 });
   }
 
+  // O ID da sessão é também a chave idempotente da primeira submissão de contacto.
+  async function existingSubmission() {
+    if (!data.submission_id) return null;
+    const { data: session, error } = await supabase!.from("sessions").select("id, lead_id, leads(phone_normalized)").eq("id", data.submission_id).maybeSingle();
+    if (error) throw error;
+    if (!session) return null;
+    const lead = Array.isArray(session.leads) ? session.leads[0] : session.leads;
+    if (!lead || lead.phone_normalized !== phone.e164) return { conflict: true as const };
+    return { conflict: false as const, lead_id: session.lead_id, session_id: session.id, resumed: true, already_started: true, phone_normalized: phone.e164 };
+  }
+  try {
+    const prior = await existingSubmission();
+    if (prior?.conflict) return Response.json({ error: "Identificador de submissão já utilizado" }, { status: 409 });
+    if (prior) return Response.json(prior);
+  } catch (error) {
+    console.error(error);
+    return Response.json({ error: "Falha ao verificar sessão" }, { status: 500 });
+  }
+
   const retentionDays = Number(process.env.EVENT_RETENTION_DAYS) || 365;
   const retentionUntil = new Date(
     Date.now() + retentionDays * 24 * 60 * 60 * 1000
@@ -112,15 +131,23 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (error || !created) {
-      console.error(error);
-      return Response.json({ error: "Falha ao criar contacto" }, { status: 500 });
-    }
-    leadId = created.id;
+      // Pedidos simultâneos para o mesmo telefone podem disputar a criação do lead.
+      if (error?.code === "23505") {
+        const retry = await supabase.from("leads").select("id").eq("phone_normalized", phone.e164).maybeSingle();
+        if (!retry.data) return Response.json({ error: "Falha ao criar contacto" }, { status: 500 });
+        leadId = retry.data.id;
+        resumed = true;
+      } else {
+        console.error(error);
+        return Response.json({ error: "Falha ao criar contacto" }, { status: 500 });
+      }
+    } else leadId = created.id;
   }
 
   const { data: session, error: sErr } = await supabase
     .from("sessions")
     .insert({
+      ...(data.submission_id ? { id: data.submission_id } : {}),
       lead_id: leadId,
       source: attr.source || attr.utm_source || null,
       utm_source: attr.utm_source || null,
@@ -142,6 +169,13 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (sErr || !session) {
+    if (sErr?.code === "23505" && data.submission_id) {
+      try {
+        const prior = await existingSubmission();
+        if (prior?.conflict) return Response.json({ error: "Identificador de submissão já utilizado" }, { status: 409 });
+        if (prior) return Response.json(prior);
+      } catch (error) { console.error(error); }
+    }
     console.error(sErr);
     return Response.json({ error: "Falha ao criar sessão" }, { status: 500 });
   }

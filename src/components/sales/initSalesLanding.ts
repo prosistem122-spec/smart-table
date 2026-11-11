@@ -50,21 +50,28 @@ export function initSalesLanding(options: SalesInitOptions): () => void {
     form.onsubmit = (e) => {
       e.preventDefault();
       const d = new FormData(form);
+      const ok = document.getElementById("ok");
+      try {
+        // Evita expor dados de contacto no URL, histórico ou logs.
+        sessionStorage.setItem("st_landing_seed", JSON.stringify({
+          restaurant: String(d.get("r") || "").trim().slice(0, 120),
+          phone: String(d.get("t") || "").trim().slice(0, 40),
+          contactName: String(d.get("n") || "").trim().slice(0, 120),
+        }));
+      } catch {
+        if (ok) { ok.textContent = "Não foi possível guardar os dados neste navegador. Activa o armazenamento da sessão e tenta novamente."; ok.style.display = "block"; }
+        return;
+      }
       options.onFormRedirect?.();
       options.onCtaClick?.("form_comecar_gratis");
-      const ok = document.getElementById("ok");
-      if (ok) (ok as HTMLElement).style.display = "block";
-      const params = new URLSearchParams();
-      const r = String(d.get("r") || "").trim();
-      const t = String(d.get("t") || "").trim();
-      if (r) params.set("restaurante", r);
-      if (t) params.set("telefone", t);
-      const q = params.toString();
-      window.location.href = `/analise${q ? `?${q}` : ""}`;
+      const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+      if (button) button.disabled = true;
+      if (ok) ok.style.display = "block";
+      window.location.href = "/analise";
     };
   }
 
-  document.querySelectorAll("[data-cta='start_free']").forEach((el) => {
+  document.querySelectorAll("a[data-cta='start_free']").forEach((el) => {
     on(el, "click", () => {
       options.onCtaClick?.(
         el.getAttribute("data-track-cta") || "start_free"
