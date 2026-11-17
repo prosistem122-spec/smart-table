@@ -47,17 +47,31 @@ export interface ContactField {
   ph: string;
   itype: "text" | "tel" | "email";
   optional?: boolean;
+  extra?: boolean;
 }
 
 export const CONTACT_FIELDS: ContactField[] = [
-  { key: "resp_nome", label: "O teu nome", ph: "Nome completo", itype: "text" },
-  { key: "whatsapp", label: "WhatsApp", ph: "+258 ...", itype: "tel" },
+  {
+    key: "resp_nome",
+    label: "O teu nome",
+    ph: "Nome completo",
+    itype: "text",
+    optional: true,
+  },
+  {
+    key: "whatsapp",
+    label: "WhatsApp",
+    ph: "+258 ...",
+    itype: "tel",
+    optional: true,
+  },
   {
     key: "cargo",
     label: "O teu cargo",
     ph: "Ex: Proprietário, Gerente",
     itype: "text",
     optional: true,
+    extra: true,
   },
   {
     key: "telefone",
@@ -65,6 +79,7 @@ export const CONTACT_FIELDS: ContactField[] = [
     ph: "Se for diferente do WhatsApp",
     itype: "tel",
     optional: true,
+    extra: true,
   },
   {
     key: "email",
@@ -72,6 +87,7 @@ export const CONTACT_FIELDS: ContactField[] = [
     ph: "email@exemplo.com",
     itype: "email",
     optional: true,
+    extra: true,
   },
   {
     key: "contactoEmpresa",
@@ -79,6 +95,7 @@ export const CONTACT_FIELDS: ContactField[] = [
     ph: "Telefone ou email do restaurante",
     itype: "text",
     optional: true,
+    extra: true,
   },
 ];
 
@@ -138,7 +155,7 @@ export const STEPS: FunnelStep[] = [
     type: "contact",
     kicker: "Vamos manter contacto",
     title: "Para onde enviamos a tua análise de {nome}?",
-    sub: "Precisamos destes contactos para falar diretamente contigo.",
+    sub: "Podes deixar os teus contactos para falarmos diretamente contigo (opcional).",
     proof: ["🔒 Sem spam", "⏱ 20 segundos"],
     final: false,
     cta: "Continuar",
@@ -277,7 +294,7 @@ export const STEPS: FunnelStep[] = [
     type: "contact",
     kicker: "Último passo",
     title: "Está na hora de impulsionar os resultados de {nome}",
-    sub: "Confirma os teus dados para receberes a solução, sem qualquer custo adicional. Só o contacto do restaurante é opcional.",
+    sub: "Confirma os teus dados para receberes a solução, sem qualquer custo adicional. O preenchimento é opcional.",
     final: true,
     cta: "Quero receber a solução",
   },

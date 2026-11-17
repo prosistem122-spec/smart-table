@@ -91,9 +91,17 @@ export default function AdminVideoPage() {
         headline_html: (s.headlineDraft || "").trim() || null,
       };
       const draft = (s.urlDraft || "").trim();
-      if (draft && !s.video_path) {
-        if (!resolveVideoSource(draft, s.video_source_mode)) throw new Error("Introduz um link HTTP(S) válido de vídeo ou de incorporação.");
-        body.video_url = draft;
+      if (!s.video_path) {
+        if (draft) {
+          if (!resolveVideoSource(draft, s.video_source_mode)) {
+            throw new Error(
+              "Introduz um link HTTP(S) válido de vídeo ou de incorporação."
+            );
+          }
+          body.video_url = draft;
+        } else if (s.video_url) {
+          body.video_url = null;
+        }
       }
       const res = await fetch("/api/admin/video-settings", {
         method: "PUT",
@@ -190,8 +198,9 @@ export default function AdminVideoPage() {
       <h1 className="admin-title">Vídeos do funil</h1>
       <p className="admin-lead">
         Carrega o vídeo vertical de cada ecrã VSL, edita o texto acima do vídeo,
-        define quando aparece o botão CTA e ajusta a barra de progresso (rápida
-        no início, lenta no fim). Em players externos, os controlos e a barra dependem da plataforma.
+        define quando aparece o botão CTA (contado a partir do início da
+        reprodução) e ajusta a curva da barra de progresso (rápida no início,
+        lenta no fim).
       </p>
 
       {loadError && <div className="alert error">{loadError}</div>}
@@ -337,8 +346,8 @@ export default function AdminVideoPage() {
                       id={`${slot}-delay`}
                       type="range"
                       min={0}
-                      max={300}
-                      step={5}
+                      max={Math.max(300, s.cta_delay_seconds)}
+                      step={1}
                       value={s.cta_delay_seconds}
                       onChange={(e) =>
                         patchSlot(slot, {
@@ -346,6 +355,10 @@ export default function AdminVideoPage() {
                         })
                       }
                     />
+                    <p className="muted" style={{ margin: "6px 0 0", fontSize: "0.78rem" }}>
+                      A contagem só começa quando o vídeo é iniciado. Antes do
+                      início da reprodução, o botão não aparece.
+                    </p>
                   </div>
 
                   <div className="filter-field">
@@ -367,7 +380,7 @@ export default function AdminVideoPage() {
                       }
                     />
                     <p className="muted" style={{ margin: "6px 0 0", fontSize: "0.78rem" }}>
-                      Aplica-se apenas a ficheiros directos, não a players externos. 1.0 = linear · valores maiores fazem a barra avançar cedo e
+                      1.0 = linear · valores maiores fazem a barra avançar cedo e
                       abrandar no fim (vídeo parece mais curto).
                     </p>
                     <div className="curve-preview">

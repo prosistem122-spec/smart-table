@@ -92,6 +92,7 @@ export async function POST(req: NextRequest) {
 
   let leadId: string;
   let resumed = false;
+  const trimmedName = data.restaurant_name.trim();
 
   if (existing) {
     leadId = existing.id;
@@ -99,7 +100,7 @@ export async function POST(req: NextRequest) {
     await supabase
       .from("leads")
       .update({
-        restaurant_name: data.restaurant_name.trim(),
+        ...(trimmedName ? { restaurant_name: trimmedName } : {}),
         phone_raw: data.phone.trim(),
         consent_analytics: data.consent_analytics || existing.consent_analytics,
         consent_contact: data.consent_contact || existing.consent_contact,
@@ -112,7 +113,7 @@ export async function POST(req: NextRequest) {
     const { data: created, error } = await supabase
       .from("leads")
       .insert({
-        restaurant_name: data.restaurant_name.trim(),
+        restaurant_name: trimmedName || "Restaurante",
         phone_raw: data.phone.trim(),
         phone_normalized: phone.e164,
         consent_analytics: data.consent_analytics,

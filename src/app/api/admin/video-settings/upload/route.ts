@@ -2,9 +2,14 @@ import { NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/admin/auth";
 import { authErrorResponse } from "@/lib/admin/errors";
 import { createServiceClient } from "@/lib/supabase/server";
-import { isVideoSlot, type VideoSlot } from "@/lib/video/settings";
+import {
+  DEFAULT_VIDEO_SETTINGS,
+  isVideoSlot,
+  type VideoSlot,
+} from "@/lib/video/settings";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 const ALLOWED = new Set([
   "video/mp4",
@@ -96,9 +101,14 @@ export async function POST(req: NextRequest) {
           video_path: path,
           video_source_mode: "auto",
           video_url: pub.publicUrl,
-          cta_delay_seconds: existing?.cta_delay_seconds ?? 45,
-          timeline_curve: existing?.timeline_curve ?? 2.2,
-          frame_width: existing?.frame_width ?? 280,
+          cta_delay_seconds:
+            existing?.cta_delay_seconds ??
+            DEFAULT_VIDEO_SETTINGS[slot].cta_delay_seconds,
+          timeline_curve:
+            existing?.timeline_curve ??
+            DEFAULT_VIDEO_SETTINGS[slot].timeline_curve,
+          frame_width:
+            existing?.frame_width ?? DEFAULT_VIDEO_SETTINGS[slot].frame_width,
           headline_html: existing?.headline_html ?? null,
           updated_at: new Date().toISOString(),
           updated_by: admin.userId,

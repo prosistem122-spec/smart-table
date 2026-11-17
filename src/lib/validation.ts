@@ -35,7 +35,7 @@ const metadataSchema = z
   });
 
 export const sessionStartSchema = z.object({
-  restaurant_name: z.string().trim().min(2).max(120),
+  restaurant_name: z.string().trim().max(120).optional().default(""),
   submission_id: z.string().uuid().optional(),
   phone: z.string().trim().min(6).max(40),
   consent_analytics: z.boolean(),
@@ -92,7 +92,23 @@ export const answersSchema = z.object({
       })
     )
     .min(1)
-    .max(30),
+    .max(40),
+});
+
+export const completeSubmissionSchema = z.object({
+  submission_id: z.string().uuid(),
+  lead_id: z.string().uuid(),
+  session_id: z.string().uuid(),
+  answers: z
+    .array(
+      z.object({
+        question_key: z.string().min(1).max(80),
+        answer: z.string().min(1).max(500),
+        step_id: z.string().max(80).optional(),
+      })
+    )
+    .max(40)
+    .default([]),
 });
 
 export const commercialUpdateSchema = z.object({

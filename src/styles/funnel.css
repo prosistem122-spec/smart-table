@@ -1,4 +1,4 @@
-﻿.funnel-page{
+.funnel-page{
   --bg:#FFFFFF;--ink:#111116;--muted:#6B6F80;--blue:#2446EE;--blue-deep:#132C9E;--blue-tint:#EEF1FE;
   --line:#E4E4EA;--card-bg:#FFFFFF;--shadow:0 16px 40px -20px rgba(17,17,22,.2);--radius:16px;--req:#C2492E;
   box-sizing:border-box;
@@ -114,8 +114,8 @@ input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;bac
   cursor:pointer;padding:0;}
 .vsl-play:disabled{opacity:.45;cursor:not-allowed;}
 .vsl-tap{position:absolute;inset:0;z-index:1;background:transparent;border:0;cursor:pointer;padding:0;}
-.vsl-scrub{position:absolute;left:13px;right:13px;bottom:13px;height:3px;border-radius:2px;background:rgba(255,255,255,.25);z-index:3;pointer-events:none;}
-.vsl-scrub>div{width:0;height:100%;background:var(--blue);border-radius:2px;transition:width .15s linear;}
+.vsl-scrub{position:absolute;left:0;right:0;bottom:0;height:6px;background:rgba(255,255,255,.28);box-shadow:inset 0 1px 0 rgba(17,17,22,.35);z-index:4;pointer-events:none;overflow:hidden;}
+.vsl-scrub>div{width:0;height:100%;background:var(--blue);border-radius:0 999px 999px 0;box-shadow:0 0 8px rgba(36,70,238,.6);transition:width .18s linear;}
 .vsl-cta-wait{text-align:center;color:var(--muted);font-size:.85rem;margin:0 0 8px;min-height:48px;display:flex;align-items:center;justify-content:center;}
 
 .img-illustration{border-radius:16px;overflow:hidden;margin:2px 0 20px;background:#EEF1FE;}

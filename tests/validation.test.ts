@@ -17,14 +17,20 @@ describe("sessionStartSchema", () => {
     expect(r.success).toBe(true);
   });
 
-  it("rejeita nome curto", () => {
-    const r = sessionStartSchema.safeParse({
-      restaurant_name: "A",
+  it("aceita nome de restaurante opcional ou curto", () => {
+    const empty = sessionStartSchema.safeParse({
+      restaurant_name: "",
       phone: "+258841234567",
       consent_analytics: true,
       consent_contact: true,
     });
-    expect(r.success).toBe(false);
+    const omitted = sessionStartSchema.safeParse({
+      phone: "+258841234567",
+      consent_analytics: false,
+      consent_contact: true,
+    });
+    expect(empty.success).toBe(true);
+    expect(omitted.success).toBe(true);
   });
 });
 
