@@ -44,18 +44,19 @@ export function SalesPageClient({ html, whatsappNumber }: Props) {
       whatsappNumber,
       onCtaClick: (element) => {
         journeyMilestone("free_clicked_at");
+        const isForm = element === "form_comecar_gratis";
         track("cta_clicked", {
           page: "sales",
           element_name: element,
           action: "start_free",
-          next_page: element === "form_comecar_gratis" ? "/analise" : "#acesso",
+          next_page: isForm ? "whatsapp" : "#acesso",
           metadata: { visit_id: visitId },
         });
         track("button_click", {
           page: "sales",
           element_name: element,
-          action: element === "form_comecar_gratis" ? "navigate_analise" : "scroll_contact",
-          next_page: element === "form_comecar_gratis" ? "/analise" : "#acesso",
+          action: isForm ? "open_whatsapp" : "scroll_contact",
+          next_page: isForm ? "whatsapp" : "#acesso",
           metadata: { visit_id: visitId },
         });
       },
@@ -78,15 +79,6 @@ export function SalesPageClient({ html, whatsappNumber }: Props) {
           page: "sales",
           element_name: element,
           action: "open_whatsapp",
-          metadata: { visit_id: visitId },
-        });
-      },
-      onFormRedirect: () => {
-        track("cta_clicked", {
-          page: "sales",
-          element_name: "form_comecar_gratis",
-          action: "redirect_analise",
-          next_page: "/analise",
           metadata: { visit_id: visitId },
         });
       },

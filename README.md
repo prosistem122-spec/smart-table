@@ -45,7 +45,7 @@ cp .env.example .env.local
 | `NEXT_PUBLIC_SUPABASE_URL` | URL do projeto |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Chave anónima (browser / Auth) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Service role (**só servidor**, nunca no browser) |
-| `NEXT_PUBLIC_WHATSAPP_NUMBER` | Número WhatsApp da equipa (ex: `25884...`) |
+| `NEXT_PUBLIC_WHATSAPP_NUMBER` | Número WhatsApp da equipa (`258853003836` / `+258 853003836`) |
 | `INACTIVE_AFTER_MS` | Inatividade (default `900000` = 15 min) |
 | `EVENT_RETENTION_DAYS` | Retenção (default `365`) |
 | `PUBLIC_RATE_LIMIT_PER_MINUTE` | Rate limit APIs públicas |
@@ -119,8 +119,8 @@ Agendar via cron / Supabase scheduled function conforme a vossa política.
 
 ## Fluxo público
 
-1. Landing (`/`) → CTAs para a secção de contacto → formulário abre `/analise` (vídeo VSL).
-2. Após o vídeo: nome do restaurante e, mais à frente, contacto (cria lead/sessão).
+1. Landing (`/`) → CTAs para a secção de contacto → formulário opcional abre conversa no WhatsApp (`+258 853003836`) com os dados preenchidos.
+2. Análise (`/analise`) → vídeo VSL (barra de progresso e delay do botão conforme Admin, iniciando a contagem apenas quando o vídeo começa) → funil com preenchimento opcional → conclusão e abertura do WhatsApp.
 3. Instrumentação de eventos + visitas anónimas (landing/vídeo) no admin.
 
 ## Configuração manual restante

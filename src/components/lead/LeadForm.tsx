@@ -9,7 +9,6 @@ import {
   track,
   setupUnloadFlush,
   startInactivityWatcher,
-  getTrackingContext,
 } from "@/lib/tracking/client";
 
 interface Props {
@@ -27,9 +26,7 @@ export function LeadForm({
   const [phone, setPhone] = useState(initialPhone);
   const [consentAnalytics, setConsentAnalytics] = useState(true);
   const [consentContact, setConsentContact] = useState(true);
-  const [errors, setErrors] = useState<{ name?: string; phone?: string; consent?: string }>({});
   const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     track("lead_form_view", {
@@ -46,46 +43,36 @@ export function LeadForm({
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setSubmitError(null);
-    const nextErrors: typeof errors = {};
-
-    if (!restaurantName.trim() || restaurantName.trim().length < 2) {
-      nextErrors.name = "Indica o nome do restaurante";
-    }
-    const phoneResult = normalizePhone(phone);
-    if (!phoneResult.ok) {
-      nextErrors.phone = phoneResult.error || "Telefone inválido";
-    }
-    if (!consentContact) {
-      nextErrors.consent = "Precisas de aceitar o contacto para avançar.";
-    }
-    setErrors(nextErrors);
-    if (Object.keys(nextErrors).length) return;
+    const trimmedName = restaurantName.trim();
+    const trimmedPhone = phone.trim();
+    const phoneResult = trimmedPhone ? normalizePhone(trimmedPhone) : null;
 
     setSubmitting(true);
     try {
-      const attribution = readClientAttribution();
-      const result = await startSession({
-        restaurant_name: restaurantName.trim(),
-        phone: phone.trim(),
-        consent_analytics: consentAnalytics,
-        consent_contact: consentContact,
-        attribution,
-      });
-
-      track("lead_form_submitted", {
-        page: "lead_form",
-        element_name: "cta_start_analysis",
-        action: "submit",
-        value: restaurantName.trim(),
-      });
-
-      if (result.resumed) {
-        track("session_resumed", {
-          page: "lead_form",
-          element_name: "session",
-          action: "resume",
+      if (phoneResult?.ok && (consentContact || consentAnalytics)) {
+        const attribution = readClientAttribution();
+        const result = await startSession({
+          restaurant_name: trimmedName || "Restaurante",
+          phone: trimmedPhone,
+          consent_analytics: consentAnalytics,
+          consent_contact: consentContact,
+          attribution,
         });
+
+        track("lead_form_submitted", {
+          page: "lead_form",
+          element_name: "cta_start_analysis",
+          action: "submit",
+          value: trimmedName,
+        });
+
+        if (result.resumed) {
+          track("session_resumed", {
+            page: "lead_form",
+            element_name: "session",
+            action: "resume",
+          });
+        }
       }
 
       track("funnel_started", {
@@ -95,25 +82,16 @@ export function LeadForm({
         element_name: "funnel",
         action: "start",
       });
-
-      onStarted({
-        restaurantName: restaurantName.trim(),
-        phone: phoneResult.e164 || phone.trim(),
-      });
-    } catch (err) {
-      // Funil pode continuar localmente se a API falhar — mas sem IDs de sessão
-      const msg = err instanceof Error ? err.message : "Erro ao iniciar";
-      setSubmitError(msg);
-      // Se já houver contexto (retry), avançar
-      if (getTrackingContext()) {
-        onStarted({
-          restaurantName: restaurantName.trim(),
-          phone: phoneResult.e164 || phone.trim(),
-        });
-      }
+    } catch {
+      /* O funil avança mesmo sem sessão remota. */
     } finally {
       setSubmitting(false);
     }
+
+    onStarted({
+      restaurantName: trimmedName,
+      phone: phoneResult?.e164 || trimmedPhone,
+    });
   }
 
   return (
@@ -121,14 +99,13 @@ export function LeadForm({
       <div className="kicker">Análise gratuita</div>
       <h1>Vamos analisar o potencial do teu restaurante</h1>
       <p className="sub">
-        Indica o nome e o contacto do restaurante para começarmos. Os teus dados
-        servem para personalizar a análise e para a equipa Smart Table te
-        contactar, se autorizares.
+        Podes indicar o nome e o contacto do restaurante para personalizar a
+        análise (opcional).
       </p>
 
       <div className="field">
         <label>
-          Nome do restaurante <span className="req-tag">obrigatório</span>
+          Nome do restaurante <span className="opt-tag">opcional</span>
         </label>
         <div className="field-wrap">
           <input
@@ -138,19 +115,15 @@ export function LeadForm({
             placeholder="Ex: Sabores da Baixa"
             value={restaurantName}
             onChange={(e) => setRestaurantName(e.target.value)}
-            style={{
-              paddingLeft: 15,
-              borderColor: errors.name ? "#C2492E" : undefined,
-            }}
+            style={{ paddingLeft: 15 }}
             autoComplete="organization"
           />
         </div>
-        {errors.name && <p className="note" style={{ color: "#C2492E", textAlign: "left" }}>{errors.name}</p>}
       </div>
 
       <div className="field">
         <label>
-          Telefone ou WhatsApp <span className="req-tag">obrigatório</span>
+          Telefone ou WhatsApp <span className="opt-tag">opcional</span>
         </label>
         <div className="field-wrap">
           <input
@@ -160,14 +133,10 @@ export function LeadForm({
             placeholder="+258 84 123 4567"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            style={{
-              paddingLeft: 15,
-              borderColor: errors.phone ? "#C2492E" : undefined,
-            }}
+            style={{ paddingLeft: 15 }}
             autoComplete="tel"
           />
         </div>
-        {errors.phone && <p className="note" style={{ color: "#C2492E", textAlign: "left" }}>{errors.phone}</p>}
       </div>
 
       <div className="consent-box">
@@ -179,8 +148,8 @@ export function LeadForm({
             data-track="consent_contact"
           />
           <span>
-            Autorizo a Smart Table a guardar o meu nome e telefone para me
-            contactar sobre esta análise.
+            Autorizo a Smart Table a guardar os dados fornecidos para me
+            contactar sobre esta análise (opcional).
           </span>
         </label>
         <label className="consent-row">
@@ -195,11 +164,6 @@ export function LeadForm({
             serviço (sem impressões digitais do dispositivo).
           </span>
         </label>
-        {errors.consent && (
-          <p className="note" style={{ color: "#C2492E", textAlign: "left" }}>
-            {errors.consent}
-          </p>
-        )}
         <p className="note" style={{ textAlign: "left", marginTop: 8 }}>
           Consulta a nossa{" "}
           <Link href="/privacidade" style={{ color: "var(--blue)", fontWeight: 600 }}>
@@ -208,12 +172,6 @@ export function LeadForm({
           .
         </p>
       </div>
-
-      {submitError && (
-        <p className="note" style={{ color: "#C2492E" }}>
-          {submitError}
-        </p>
-      )}
 
       <button
         type="submit"

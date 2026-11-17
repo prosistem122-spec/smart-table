@@ -7,11 +7,13 @@ import {
   DEFAULT_HEADLINES,
   DEFAULT_VIDEO_SETTINGS,
   VIDEO_SLOTS,
+  isVideoSlot,
   type FunnelVideoSettings,
   type VideoSlot,
 } from "@/lib/video/settings";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 function resolveUrl(
   supabase: ReturnType<typeof createServiceClient>,
@@ -69,14 +71,19 @@ export async function GET() {
     if (error) throw error;
 
     const bySlot = new Map(
-      (data || []).map((r) => [r.slot, mapRow(supabase, r)])
+      (data || [])
+        .filter((r) => isVideoSlot(r.slot))
+        .map((r) => [r.slot, mapRow(supabase, r)])
     );
 
-    return Response.json({
-      settings: VIDEO_SLOTS.map(
-        (s) => bySlot.get(s) || DEFAULT_VIDEO_SETTINGS[s]
-      ),
-    });
+    return Response.json(
+      {
+        settings: VIDEO_SLOTS.map(
+          (s) => bySlot.get(s) || DEFAULT_VIDEO_SETTINGS[s]
+        ),
+      },
+      { headers: { "Cache-Control": "no-store, max-age=0" } }
+    );
   } catch (err) {
     return authErrorResponse(err);
   }

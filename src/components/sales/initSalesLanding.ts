@@ -1,20 +1,21 @@
+import {
+  WHATSAPP_NUMBER,
+  buildLandingWhatsAppMessage,
+  buildWhatsAppUrl,
+  normalizeWhatsAppNumber,
+} from "@/lib/whatsapp";
+
 export type SalesInitOptions = {
   whatsappNumber: string;
   onCtaClick?: (element: string) => void;
   onDemoStep?: (step: number, manual: boolean) => void;
   onWhatsAppClick?: (element: string) => void;
-  onFormRedirect?: () => void;
 };
-
-function digitsOnly(value: string): string {
-  return value.replace(/\D/g, "");
-}
 
 /** Inicializa animações e interações da página de vendas (portado do HTML original). */
 export function initSalesLanding(options: SalesInitOptions): () => void {
-  const WA = digitsOnly(options.whatsappNumber || "258853003836");
-  const wa = (t: string) =>
-    `https://wa.me/${WA}?text=${encodeURIComponent(t)}`;
+  const WA = normalizeWhatsAppNumber(options.whatsappNumber || WHATSAPP_NUMBER);
+  const wa = (t: string) => buildWhatsAppUrl(t, WA);
 
   const listeners: Array<() => void> = [];
   const on = (
@@ -30,7 +31,7 @@ export function initSalesLanding(options: SalesInitOptions): () => void {
   document.querySelectorAll<HTMLAnchorElement>("[data-wa]").forEach((a) => {
     a.href = wa("Olá! Quero saber mais sobre a Smarttable.");
     a.target = "_blank";
-    a.rel = "noopener";
+    a.rel = "noopener noreferrer";
     on(a, "click", () => {
       options.onWhatsAppClick?.(
         a.getAttribute("data-track-cta") || "whatsapp"
@@ -41,33 +42,54 @@ export function initSalesLanding(options: SalesInitOptions): () => void {
   document.querySelectorAll<HTMLAnchorElement>("[data-wat]").forEach((a) => {
     a.href = wa("Olá! Quero deixar o meu depoimento sobre a Smarttable.");
     a.target = "_blank";
-    a.rel = "noopener";
+    a.rel = "noopener noreferrer";
     on(a, "click", () => options.onWhatsAppClick?.("depoimento"));
   });
 
   const form = document.getElementById("f") as HTMLFormElement | null;
   if (form) {
+    form.noValidate = true;
+    form.querySelectorAll("input, select, textarea").forEach((el) => {
+      el.removeAttribute("required");
+    });
     form.onsubmit = (e) => {
       e.preventDefault();
       const d = new FormData(form);
-      const ok = document.getElementById("ok");
+      const name = String(d.get("n") || "").trim().slice(0, 120);
+      const restaurant = String(d.get("r") || "").trim().slice(0, 120);
+      const whatsapp = String(d.get("t") || "").trim().slice(0, 40);
+      const tables = String(d.get("m") || "").trim().slice(0, 80);
+
       try {
-        // Evita expor dados de contacto no URL, histórico ou logs.
-        sessionStorage.setItem("st_landing_seed", JSON.stringify({
-          restaurant: String(d.get("r") || "").trim().slice(0, 120),
-          phone: String(d.get("t") || "").trim().slice(0, 40),
-          contactName: String(d.get("n") || "").trim().slice(0, 120),
-        }));
+        sessionStorage.setItem(
+          "st_landing_seed",
+          JSON.stringify({ restaurant, phone: whatsapp, contactName: name })
+        );
       } catch {
-        if (ok) { ok.textContent = "Não foi possível guardar os dados neste navegador. Activa o armazenamento da sessão e tenta novamente."; ok.style.display = "block"; }
-        return;
+        /* O armazenamento da sessão é opcional para abrir o WhatsApp. */
       }
-      options.onFormRedirect?.();
+
+      const url = wa(
+        buildLandingWhatsAppMessage({ name, restaurant, whatsapp, tables })
+      );
+
       options.onCtaClick?.("form_comecar_gratis");
-      const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
-      if (button) button.disabled = true;
-      if (ok) ok.style.display = "block";
-      window.location.href = "/analise";
+      options.onWhatsAppClick?.("form_comecar_gratis");
+
+      const ok = document.getElementById("ok");
+      if (ok) {
+        ok.textContent = "Quase lá! Confirme o envio no WhatsApp. ";
+        const link = document.createElement("a");
+        link.href = url;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.style.textDecoration = "underline";
+        link.textContent = "Abrir WhatsApp";
+        ok.appendChild(link);
+        ok.style.display = "block";
+      }
+
+      window.open(url, "_blank", "noopener,noreferrer");
     };
   }
 
@@ -203,7 +225,9 @@ export function initSalesLanding(options: SalesInitOptions): () => void {
     const els = st.querySelectorAll<HTMLElement>("[data-st]");
     const bs: HTMLButtonElement[] = [];
     let started = false;
-    const red = window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+    const red =
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion:reduce)").matches;
 
     function go(n: number, man: boolean) {
       clearTimeout(storyTimer);
@@ -269,18 +293,20 @@ export function initSalesLanding(options: SalesInitOptions): () => void {
     const again = document.getElementById("again");
     if (again) again.onclick = () => go(1, true);
 
-    const demoIo = new IntersectionObserver(
-      (es, o) => {
-        if (es[0]?.isIntersecting && !started) {
-          started = true;
-          o.disconnect();
-          go(1, false);
-        }
-      },
-      { threshold: 0.25 }
-    );
-    demoIo.observe(fit);
-    observers.push(demoIo);
+    if ("IntersectionObserver" in window) {
+      const demoIo = new IntersectionObserver(
+        (es, o) => {
+          if (es[0]?.isIntersecting && !started) {
+            started = true;
+            o.disconnect();
+            go(1, false);
+          }
+        },
+        { threshold: 0.25 }
+      );
+      demoIo.observe(fit);
+      observers.push(demoIo);
+    }
 
     if (cn) cn.textContent = "1/6";
     if (ct) ct.textContent = T[0][0];
@@ -290,34 +316,38 @@ export function initSalesLanding(options: SalesInitOptions): () => void {
   }
 
   // Reveal animations
-  const io = new IntersectionObserver(
-    (es) => {
-      es.forEach((e) => {
-        if (e.isIntersecting) {
-          const t = e.target as HTMLElement;
-          t.classList.add("in");
-          setTimeout(() => {
-            t.style.transitionDelay = "";
-          }, 1100);
-          io.unobserve(t);
-        }
-      });
-    },
-    { threshold: 0.15 }
-  );
-  observers.push(io);
   document
     .querySelectorAll("section h2,section .sub,section .k,.ck li")
     .forEach((e) => e.classList.add("rv"));
-  document.querySelectorAll(".rv").forEach((e) => {
-    const parent = e.parentNode;
-    if (parent) {
-      (e as HTMLElement).style.transitionDelay = `${
-        (Array.prototype.indexOf.call(parent.children, e) % 4) * 100
-      }ms`;
-    }
-    io.observe(e);
-  });
+  if ("IntersectionObserver" in window) {
+    const io = new IntersectionObserver(
+      (es) => {
+        es.forEach((e) => {
+          if (e.isIntersecting) {
+            const t = e.target as HTMLElement;
+            t.classList.add("in");
+            setTimeout(() => {
+              t.style.transitionDelay = "";
+            }, 1100);
+            io.unobserve(t);
+          }
+        });
+      },
+      { threshold: 0.15 }
+    );
+    observers.push(io);
+    document.querySelectorAll(".rv").forEach((e) => {
+      const parent = e.parentNode;
+      if (parent) {
+        (e as HTMLElement).style.transitionDelay = `${
+          (Array.prototype.indexOf.call(parent.children, e) % 4) * 100
+        }ms`;
+      }
+      io.observe(e);
+    });
+  } else {
+    document.querySelectorAll(".rv").forEach((e) => e.classList.add("in"));
+  }
 
   // Nav section highlight
   const ls = document.querySelectorAll<HTMLAnchorElement>("nav ul a");
@@ -326,18 +356,20 @@ export function initSalesLanding(options: SalesInitOptions): () => void {
     const href = a.getAttribute("href");
     sc.push(href ? document.querySelector(href) : null);
   });
-  const so = new IntersectionObserver(
-    (es) => {
-      es.forEach((e) => {
-        if (e.isIntersecting) {
-          ls.forEach((a, k) => a.classList.toggle("on", sc[k] === e.target));
-        }
-      });
-    },
-    { rootMargin: "-45% 0px -50% 0px" }
-  );
-  observers.push(so);
-  sc.forEach((x) => x && so.observe(x));
+  if ("IntersectionObserver" in window) {
+    const so = new IntersectionObserver(
+      (es) => {
+        es.forEach((e) => {
+          if (e.isIntersecting) {
+            ls.forEach((a, k) => a.classList.toggle("on", sc[k] === e.target));
+          }
+        });
+      },
+      { rootMargin: "-45% 0px -50% 0px" }
+    );
+    observers.push(so);
+    sc.forEach((x) => x && so.observe(x));
+  }
 
   // Ticker
   const tk = document.getElementById("tk");
@@ -362,9 +394,9 @@ export function initSalesLanding(options: SalesInitOptions): () => void {
   }
 
   // Carousels
-  const redMotion = window.matchMedia(
-    "(prefers-reduced-motion:reduce)"
-  ).matches;
+  const redMotion =
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion:reduce)").matches;
   let rafId = 0;
 
   function carousel(el: HTMLElement | null) {

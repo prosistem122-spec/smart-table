@@ -1,3 +1,5 @@
+import { WHATSAPP_NUMBER } from "@/lib/whatsapp";
+
 export function getInactiveAfterMs(): number {
   const n = Number(process.env.INACTIVE_AFTER_MS);
   return Number.isFinite(n) && n > 0 ? n : 15 * 60 * 1000;
@@ -9,7 +11,7 @@ export function getRateLimitPerMinute(): number {
 }
 
 export function getWhatsAppNumber(): string {
-  return process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "258840000000";
+  return WHATSAPP_NUMBER;
 }
 
 export function isSupabaseConfigured(): boolean {
